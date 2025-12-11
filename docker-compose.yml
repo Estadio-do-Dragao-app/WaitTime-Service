@@ -1,5 +1,5 @@
 # Docker Compose - WaitTime Service
-# Conecta-se ao broker Mosquitto EXTERNO
+# Usa DOIS brokers MQTT separados
 
 version: '3.8'
 
@@ -11,14 +11,16 @@ services:
       dockerfile: Dockerfile
     container_name: stadium-waittime-service
     environment:
-      # MQTT Broker (Mosquitto)
-      MQTT_BROKER_HOST: mosquitto
-      MQTT_BROKER_PORT: 1883
+      # DOWNSTREAM MQTT Broker (receives from simulator)
+      DOWNSTREAM_BROKER_HOST: mosquitto-downstream
+      DOWNSTREAM_BROKER_PORT: 1883
+      DOWNSTREAM_TOPIC_QUEUES: stadium/events/queues
+      DOWNSTREAM_TOPIC_ALL: stadium/events/all
       
-      # MQTT Topics
-      MQTT_TOPIC_QUEUES: stadium/events/queues
-      MQTT_TOPIC_ALL_EVENTS: stadium/events/all
-      MQTT_TOPIC_WAITTIME: stadium/waittime/updates
+      # UPSTREAM MQTT Broker (publishes to clients)
+      UPSTREAM_BROKER_HOST: mosquitto-upstream
+      UPSTREAM_BROKER_PORT: 1883
+      UPSTREAM_TOPIC_PREFIX: stadium/waittime
       
       # PostgreSQL Database
       POSTGRES_HOST: postgres
@@ -38,19 +40,23 @@ services:
     restart: unless-stopped
     networks:
       - stadium-network
-    depends_on:
-      - mosquitto
 
-  # Mosquitto MQTT Broker (opcional - pode ser externo)
-  mosquitto:
+  # DOWNSTREAM Mosquitto (receives events from simulator)
+  mosquitto-downstream:
     image: eclipse-mosquitto:2
-    container_name: stadium-mosquitto
+    container_name: stadium-mosquitto-downstream
     ports:
       - "1883:1883"
-      - "9001:9001"
-    volumes:
-      - mosquitto-data:/mosquitto/data
-      - mosquitto-log:/mosquitto/log
+    command: mosquitto -c /mosquitto-no-auth.conf
+    networks:
+      - stadium-network
+
+  # UPSTREAM Mosquitto (publishes to client apps)
+  mosquitto-upstream:
+    image: eclipse-mosquitto:2
+    container_name: stadium-mosquitto-upstream
+    ports:
+      - "1884:1883"
     command: mosquitto -c /mosquitto-no-auth.conf
     networks:
       - stadium-network
@@ -59,10 +65,7 @@ networks:
   stadium-network:
     external: true
 
-volumes:
-  mosquitto-data:
-  mosquitto-log:
-
 # NOTA:
-# - Mosquitto está incluído mas pode ser removido se já existir externamente
-# - Para usar broker externo, remover o serviço mosquitto e ajustar MQTT_BROKER_HOST
+# - DOWNSTREAM (porta 1883): Simulador publica eventos aqui
+# - UPSTREAM (porta 1884): Clientes subscrevem wait times aqui
+# - Para brokers externos, ajustar os hostnames nas variáveis de ambiente
