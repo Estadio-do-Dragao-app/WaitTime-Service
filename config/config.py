@@ -1,21 +1,7 @@
-# import os
-# from dotenv import load_dotenv
-
-# load_dotenv()
-
-# class Config:
-#     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URI') or 'postgresql://localhost/estadio_do_dragao'
-    
-#     # Additional optional configurations
-#     SQLALCHEMY_TRACK_MODIFICATIONS = False
-#     DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
-
-
 """
 Configuration for Wait Time Service
 """
 from pydantic_settings import BaseSettings
-from typing import Optional
 
 
 class Settings(BaseSettings):
@@ -39,41 +25,29 @@ class Settings(BaseSettings):
             f"@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
         )
     
-    # Downstream Broker (receives queue_events from camera processors)
-    DOWNSTREAM_BROKER_HOST: str = "localhost"
-    DOWNSTREAM_BROKER_PORT: int = 5672
-    DOWNSTREAM_BROKER_USER: str = "guest"
-    DOWNSTREAM_BROKER_PASSWORD: str = "guest"
-    DOWNSTREAM_EXCHANGE: str = "stadium.events"
-    QUEUE_EVENTS_QUEUE: str = "queue_events"
+    # ==================== DOWNSTREAM BROKER (MQTT) ====================
+    # Receives events FROM simulator
+    DOWNSTREAM_BROKER_HOST: str = "mosquitto-downstream"
+    DOWNSTREAM_BROKER_PORT: int = 1883
     
-    @property
-    def DOWNSTREAM_BROKER_URL(self) -> str:
-        return (
-            f"amqp://{self.DOWNSTREAM_BROKER_USER}:{self.DOWNSTREAM_BROKER_PASSWORD}"
-            f"@{self.DOWNSTREAM_BROKER_HOST}:{self.DOWNSTREAM_BROKER_PORT}/"
-        )
+    # Topics to subscribe (from simulator)
+    DOWNSTREAM_TOPIC_QUEUES: str = "stadium/events/queues"
+    DOWNSTREAM_TOPIC_ALL: str = "stadium/events/all"
     
-    # Upstream Broker (publishes waittime_updates for clients)
-    UPSTREAM_BROKER_HOST: str = "localhost"
-    UPSTREAM_BROKER_PORT: int = 5672
-    UPSTREAM_BROKER_USER: str = "guest"
-    UPSTREAM_BROKER_PASSWORD: str = "guest"
-    UPSTREAM_EXCHANGE: str = "stadium.updates"
+    # ==================== UPSTREAM BROKER (MQTT) ====================
+    # Publishes wait times TO clients/apps
+    UPSTREAM_BROKER_HOST: str = "mosquitto-upstream"
+    UPSTREAM_BROKER_PORT: int = 1883
     
-    @property
-    def UPSTREAM_BROKER_URL(self) -> str:
-        return (
-            f"amqp://{self.UPSTREAM_BROKER_USER}:{self.UPSTREAM_BROKER_PASSWORD}"
-            f"@{self.UPSTREAM_BROKER_HOST}:{self.UPSTREAM_BROKER_PORT}/"
-        )
+    # Topic prefix for publishing
+    UPSTREAM_TOPIC_PREFIX: str = "stadium/waittime"
     
-    # Queue modeling parameters
+    # ==================== QUEUE MODEL PARAMETERS ====================
     ARRIVAL_RATE_WINDOW_MINUTES: int = 5
-    EMA_ALPHA: float = 0.3  # Smoothing factor for arrival rates
-    SIGNIFICANT_CHANGE_THRESHOLD: float = 15.0  # Percent change to trigger publish
+    EMA_ALPHA: float = 0.3
+    SIGNIFICANT_CHANGE_THRESHOLD: float = 15.0
     
-    # External Services
+    # ==================== EXTERNAL SERVICES ====================
     MAP_SERVICE_URL: str = "http://mapservice:8000"
     MAP_SERVICE_TIMEOUT: int = 10
     

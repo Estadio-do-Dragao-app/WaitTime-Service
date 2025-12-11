@@ -38,7 +38,7 @@ class MapServiceClient:
         MapService returns Node objects with additional fields (x, y, level, etc),
         but we only need the queue-related fields for wait time calculations.
         """
-        url = f"{self.base_url}/api/pois"
+        url = f"{self.base_url}/pois"
         
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
@@ -75,7 +75,7 @@ class MapServiceClient:
         Returns:
             POI dictionary
         """
-        url = f"{self.base_url}/api/poi/{poi_id}"
+        url = f"{self.base_url}/pois/{poi_id}"
         
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
