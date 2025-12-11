@@ -67,19 +67,21 @@ class MQTTEventConsumer:
                     f"{settings.DOWNSTREAM_BROKER_HOST}:{settings.DOWNSTREAM_BROKER_PORT}"
                 )
                 
+                logger.info("Creating aiomqtt client for DOWNSTREAM...")
                 async with aiomqtt.Client(
                     hostname=settings.DOWNSTREAM_BROKER_HOST,
                     port=settings.DOWNSTREAM_BROKER_PORT,
                     identifier=f"waittime-downstream-{id(self)}"
                 ) as client:
                     self.downstream_client = client
+                    logger.info("DOWNSTREAM connection established!")
                     
                     # Subscribe to queue events
                     await client.subscribe(settings.DOWNSTREAM_TOPIC_QUEUES)
-                    logger.info(f"Subscribed to: {settings.DOWNSTREAM_TOPIC_QUEUES}")
+                    logger.info(f"[DOWNSTREAM] Subscribed to topic: {settings.DOWNSTREAM_TOPIC_QUEUES}")
                     
                     await client.subscribe(settings.DOWNSTREAM_TOPIC_ALL)
-                    logger.info(f"Subscribed to: {settings.DOWNSTREAM_TOPIC_ALL}")
+                    logger.info(f"[DOWNSTREAM] Subscribed to topic: {settings.DOWNSTREAM_TOPIC_ALL}")
                     
                     logger.info("DOWNSTREAM Consumer started - waiting for messages...")
                     
@@ -114,7 +116,7 @@ class MQTTEventConsumer:
                     identifier=f"waittime-upstream-{id(self)}"
                 ) as client:
                     self.upstream_client = client
-                    logger.info("UPSTREAM connection established")
+                    logger.info("[UPSTREAM] Connection established")
                     
                     # Keep connection alive
                     while self.running:
@@ -138,7 +140,8 @@ class MQTTEventConsumer:
             topic = str(message.topic)
             payload = message.payload.decode()
             
-            logger.debug(f"Received on {topic}: {payload[:100]}...")
+            logger.info(f"[DOWNSTREAM] Received message from topic: {topic}")
+            logger.debug(f"[DOWNSTREAM] Payload: {payload[:100]}...")
             
             try:
                 event_data = json.loads(payload)
@@ -281,9 +284,9 @@ class MQTTEventConsumer:
             topic = f"{settings.UPSTREAM_TOPIC_PREFIX}/{poi_id}"
             await self.upstream_client.publish(topic, json.dumps(update))
             self.stats['messages_published'] += 1
-            logger.debug(f"Published to UPSTREAM: {topic}")
+            logger.info(f"[UPSTREAM] Published to topic: {topic} (wait={wait_minutes:.1f}min, queue={queue_length})")
         except Exception as e:
-            logger.error(f"Failed to publish: {e}")
+            logger.error(f"[UPSTREAM] Failed to publish: {e}")
             self.stats['errors'] += 1
     
     def _is_significant_change(self, old_wait: Optional[float], new_wait: float) -> bool:

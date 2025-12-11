@@ -20,3 +20,60 @@
 1765471229: Opening ipv6 listen socket on port 1883.
 1765471229: Opening websockets listen socket on port 9001.
 1765471229: mosquitto version 2.0.22 running
+1765476878: mosquitto version 2.0.22 starting
+1765476878: Config loaded from /mosquitto/config/mosquitto.conf.
+1765476878: Opening ipv4 listen socket on port 1883.
+1765476878: Opening ipv6 listen socket on port 1883.
+1765476878: Opening websockets listen socket on port 9001.
+1765476878: mosquitto version 2.0.22 running
+1765476971: mosquitto version 2.0.22 terminating
+1765476971: Saving in-memory database to /mosquitto/data//mosquitto.db.
+1765476977: mosquitto version 2.0.22 starting
+1765476977: Config loaded from /mosquitto/config/mosquitto.conf.
+1765476977: Opening ipv4 listen socket on port 1883.
+1765476977: Opening ipv6 listen socket on port 1883.
+1765476977: Opening websockets listen socket on port 9001.
+1765476977: mosquitto version 2.0.22 running
+1765478179: mosquitto version 2.0.22 terminating
+1765478179: Saving in-memory database to /mosquitto/data//mosquitto.db.
+1765478346: mosquitto version 2.0.22 starting
+1765478346: Config loaded from /mosquitto/config/mosquitto.conf.
+1765478346: Opening ipv4 listen socket on port 1883.
+1765478346: Opening ipv6 listen socket on port 1883.
+1765478346: Opening websockets listen socket on port 9001.
+1765478346: mosquitto version 2.0.22 running
+1765478358: New connection from 172.21.0.4:54283 on port 1883.
+1765478358: New client connected from 172.21.0.4:54283 as waittime-upstream-125354555322256 (p2, c1, k60).
+1765478365: Client waittime-upstream-125354555322256 disconnected.
+1765478365: mosquitto version 2.0.22 terminating
+1765478365: Saving in-memory database to /mosquitto/data//mosquitto.db.
+1765478414: mosquitto version 2.0.22 starting
+1765478414: Config loaded from /mosquitto/config/mosquitto.conf.
+1765478414: Opening ipv4 listen socket on port 1883.
+1765478414: Opening ipv6 listen socket on port 1883.
+1765478414: Opening websockets listen socket on port 9001.
+1765478414: mosquitto version 2.0.22 running
+1765478426: New connection from 172.21.0.4:50195 on port 1883.
+1765478426: New client connected from 172.21.0.4:50195 as waittime-upstream-135281427239696 (p2, c1, k60).
+1765479077: Client waittime-upstream-135281427239696 disconnected.
+1765479086: New connection from 172.21.0.4:52601 on port 1883.
+1765479086: New client connected from 172.21.0.4:52601 as waittime-upstream-137988885348240 (p2, c1, k60).
+1765479163: Client waittime-upstream-137988885348240 disconnected.
+1765479428: mosquitto version 2.0.22 terminating
+1765479428: Saving in-memory database to /mosquitto/data//mosquitto.db.
+1765479436: mosquitto version 2.0.22 starting
+1765479436: Config loaded from /mosquitto/config/mosquitto.conf.
+1765479436: Opening ipv4 listen socket on port 1883.
+1765479436: Opening ipv6 listen socket on port 1883.
+1765479436: Opening websockets listen socket on port 9001.
+1765479436: mosquitto version 2.0.22 running
+1765480002: mosquitto version 2.0.22 terminating
+1765480002: Saving in-memory database to /mosquitto/data//mosquitto.db.
+1765480008: mosquitto version 2.0.22 starting
+1765480008: Config loaded from /mosquitto/config/mosquitto.conf.
+1765480008: Opening ipv4 listen socket on port 1883.
+1765480008: Opening ipv6 listen socket on port 1883.
+1765480008: Opening websockets listen socket on port 9001.
+1765480008: mosquitto version 2.0.22 running
+1765480091: mosquitto version 2.0.22 terminating
+1765480091: Saving in-memory database to /mosquitto/data//mosquitto.db.
