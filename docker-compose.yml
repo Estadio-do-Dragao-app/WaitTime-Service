@@ -1,30 +1,34 @@
-# Docker Compose Simplificado - WaitTime Service
-# Este serviço conecta-se a brokers EXTERNOS (não geridos aqui)
+# Docker Compose - WaitTime Service
+# Conecta-se ao broker Mosquitto EXTERNO
 
 version: '3.8'
 
 services:
-  # Wait Time Service (apenas o serviço principal)
+  # Wait Time Service
   waittime-service:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: stadium-waittime-service
     environment:
-      # Downstream broker (EXTERNO - recebe eventos)
-      DOWNSTREAM_BROKER_HOST: rabbitmq  # hostname do broker externo
-      DOWNSTREAM_BROKER_PORT: 5672
-      DOWNSTREAM_BROKER_USER: guest
-      DOWNSTREAM_BROKER_PASSWORD: guest
-      DOWNSTREAM_EXCHANGE: stadium.events
-      QUEUE_EVENTS_QUEUE: queue_events
+      # MQTT Broker (Mosquitto)
+      MQTT_BROKER_HOST: mosquitto
+      MQTT_BROKER_PORT: 1883
       
-      # Upstream broker (EXTERNO - publica updates)
-      UPSTREAM_BROKER_HOST: rabbitmq  # hostname do broker externo
-      UPSTREAM_BROKER_PORT: 5672
-      UPSTREAM_BROKER_USER: guest
-      UPSTREAM_BROKER_PASSWORD: guest
-      UPSTREAM_EXCHANGE: stadium.updates
+      # MQTT Topics
+      MQTT_TOPIC_QUEUES: stadium/events/queues
+      MQTT_TOPIC_ALL_EVENTS: stadium/events/all
+      MQTT_TOPIC_WAITTIME: stadium/waittime/updates
+      
+      # PostgreSQL Database
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: stadium_waittime
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      
+      # Map Service
+      MAP_SERVICE_URL: http://mapservice:8000
       
       # Service config
       SERVICE_PORT: 8001
@@ -34,12 +38,31 @@ services:
     restart: unless-stopped
     networks:
       - stadium-network
+    depends_on:
+      - mosquitto
+
+  # Mosquitto MQTT Broker (opcional - pode ser externo)
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: stadium-mosquitto
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - mosquitto-data:/mosquitto/data
+      - mosquitto-log:/mosquitto/log
+    command: mosquitto -c /mosquitto-no-auth.conf
+    networks:
+      - stadium-network
 
 networks:
   stadium-network:
-    external: true  # A network deve ser criada externamente e partilhada por todos os serviços
+    external: true
+
+volumes:
+  mosquitto-data:
+  mosquitto-log:
 
 # NOTA:
-# - Os brokers RabbitMQ devem ser geridos por outro serviço/docker-compose
-# - Este serviço apenas conecta-se aos brokers através da network
-# - PostgreSQL foi removido - se persistência for necessária, deve ser gerida por outro serviço
+# - Mosquitto está incluído mas pode ser removido se já existir externamente
+# - Para usar broker externo, remover o serviço mosquitto e ajustar MQTT_BROKER_HOST
