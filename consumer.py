@@ -75,14 +75,66 @@ class MQTTEventConsumer:
                     self.downstream_client.connect(settings.DOWNSTREAM_BROKER_HOST, settings.DOWNSTREAM_BROKER_PORT, 60)
                     self.downstream_client.loop_start()
                 
-                # Connect Upstream
-                logger.info(f"Connecting to UPSTREAM: {settings.UPSTREAM_BROKER_HOST}:{settings.UPSTREAM_BROKER_PORT}")
-                if not self.upstream_client.is_connected():
-                    self.upstream_client.connect(settings.UPSTREAM_BROKER_HOST, settings.UPSTREAM_BROKER_PORT, 60)
-                    self.upstream_client.loop_start()
+                logger.info("Creating aiomqtt client for DOWNSTREAM...")
+                async with aiomqtt.Client(
+                    hostname=settings.DOWNSTREAM_BROKER_HOST,
+                    port=settings.DOWNSTREAM_BROKER_PORT,
+                    identifier=f"waittime-downstream-{id(self)}"
+                ) as client:
+                    self.downstream_client = client
+                    logger.info("DOWNSTREAM connection established!")
+                    
+                    # Subscribe to queue events
+                    await client.subscribe(settings.DOWNSTREAM_TOPIC_QUEUES)
+                    logger.info(f"[DOWNSTREAM] Subscribed to topic: {settings.DOWNSTREAM_TOPIC_QUEUES}")
+                    
+                    await client.subscribe(settings.DOWNSTREAM_TOPIC_ALL)
+                    logger.info(f"[DOWNSTREAM] Subscribed to topic: {settings.DOWNSTREAM_TOPIC_ALL}")
+                    
+                    logger.info("DOWNSTREAM Consumer started - waiting for messages...")
+                    
+                    # Process incoming messages
+                    async for message in client.messages:
+                        await self._on_message(message)
+                        
+            except aiomqtt.MqttError as e:
+                logger.error(f"DOWNSTREAM connection error: {e}")
+                self.stats['errors'] += 1
+                if self.running:
+                    logger.info("Reconnecting DOWNSTREAM in 5 seconds...")
+                    await asyncio.sleep(5)
+            except Exception as e:
+                logger.error(f"DOWNSTREAM unexpected error: {e}")
+                self.stats['errors'] += 1
+                if self.running:
+                    await asyncio.sleep(5)
+    
+    async def _run_upstream_keepalive(self):
+        """Keep upstream connection alive for publishing"""
+        while self.running:
+            try:
+                logger.info(
+                    f"Connecting to UPSTREAM broker: "
+                    f"{settings.UPSTREAM_BROKER_HOST}:{settings.UPSTREAM_BROKER_PORT}"
+                )
                 
-                break # Success
-                
+                async with aiomqtt.Client(
+                    hostname=settings.UPSTREAM_BROKER_HOST,
+                    port=settings.UPSTREAM_BROKER_PORT,
+                    identifier=f"waittime-upstream-{id(self)}"
+                ) as client:
+                    self.upstream_client = client
+                    logger.info("[UPSTREAM] Connection established")
+                    
+                    # Keep connection alive
+                    while self.running:
+                        await asyncio.sleep(1)
+                        
+            except aiomqtt.MqttError as e:
+                logger.error(f"UPSTREAM connection error: {e}")
+                if self.running:
+                    logger.info("Reconnecting UPSTREAM in 5 seconds...")
+                    await asyncio.sleep(5)
             except Exception as e:
                 logger.error(f"Failed to start MQTT clients (retrying in 5s): {e}")
                 await asyncio.sleep(5)
@@ -270,13 +322,16 @@ class MQTTEventConsumer:
             topic = f"{settings.UPSTREAM_TOPIC_PREFIX}/{poi_id}"
             self.upstream_client.publish(topic, json.dumps(update))
             self.stats['messages_published'] += 1
-            logger.debug(f"Published to UPSTREAM: {topic}")
+            logger.info(f"[UPSTREAM] Published to topic: {topic} (wait={wait_minutes:.1f}min, queue={queue_length})")
         except Exception as e:
-            logger.error(f"Failed to publish: {e}")
-
-    def _is_significant_change(self, old_wait, new_wait) -> bool:
-        if old_wait is None: return True
-        if old_wait == 0: return new_wait > 0.5
+            logger.error(f"[UPSTREAM] Failed to publish: {e}")
+            self.stats['errors'] += 1
+    
+    def _is_significant_change(self, old_wait: Optional[float], new_wait: float) -> bool:
+        if old_wait is None:
+            return True
+        if old_wait == 0:
+            return new_wait > 0.5
         return abs((new_wait - old_wait) / old_wait * 100) >= 15.0
 
     def get_stats(self) -> dict:

@@ -1,27 +1,38 @@
 # Docker Compose - WaitTime Service
-# Usa os brokers MQTT dos outros serviços (não cria duplicados)
+# Uses MQTT broker on port 1886 for client communication
 
 version: '3.8'
 
 services:
-  # Wait Time Service
+  postgres:
+    image: postgres:15-alpine
+    container_name: waittime-postgres
+    environment:
+      POSTGRES_DB: stadium_waittime
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"  # Port 5433 to avoid conflicts with other services
+    volumes:
+      - waittime-db-data:/var/lib/postgresql/data
+    networks:
+      - waittime-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   waittime-service:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: stadium-waittime-service
+    container_name: waittime-service
+    depends_on:
+      postgres:
+        condition: service_healthy
     environment:
-      # DOWNSTREAM MQTT Broker (receives from simulator - Stadium-Event-Generator)
-      DOWNSTREAM_BROKER_HOST: stadium-mosquitto
-      DOWNSTREAM_BROKER_PORT: 1883
-      DOWNSTREAM_TOPIC_QUEUES: stadium/events/queues
-      DOWNSTREAM_TOPIC_ALL: stadium/events/all
-      
-      # UPSTREAM MQTT Broker (publishes to clients - Service-to-Client-Broker)
-      UPSTREAM_BROKER_HOST: client-mosquitto
-      UPSTREAM_BROKER_PORT: 1883
-      UPSTREAM_TOPIC_PREFIX: stadium/waittime
-      
       # PostgreSQL Database
       POSTGRES_HOST: postgres-waittime
       POSTGRES_PORT: 5432
@@ -29,60 +40,39 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       
-      # Map Service
-      MAP_SERVICE_URL: http://mapservice:8000
+      # DOWNSTREAM BROKER (receives events FROM simulator)
+      DOWNSTREAM_BROKER_HOST: stadium-mosquitto
+      DOWNSTREAM_BROKER_PORT: 1883
+      DOWNSTREAM_TOPIC_QUEUES: stadium/events/queues
+      
+      # UPSTREAM BROKER (publishes wait times TO clients)
+      UPSTREAM_BROKER_HOST: client-mosquitto
+      UPSTREAM_BROKER_PORT: 1883
+      UPSTREAM_TOPIC_PREFIX: stadium/services/waittime
       
       # Service config
       SERVICE_PORT: 8001
       LOG_LEVEL: DEBUG
     ports:
       - "8001:8001"
-    depends_on:
-      - postgres-waittime
+    networks:
+      - waittime-network
+      - stadium_network
+      - client_network
     restart: unless-stopped
-    networks:
-      - waittime-network
-      - stadium-network
-      - client-network
-      - map-network
-
-  # PostgreSQL for WaitTime Service
-  postgres-waittime:
-    image: postgres:15-alpine
-    container_name: postgres-waittime
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: stadium_waittime
-    ports:
-      - "5435:5432"
-    volumes:
-      - waittime_postgres_data:/var/lib/postgresql/data
-    networks:
-      - waittime-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+    external_links:
+      - stadium-mosquitto:stadium-mosquitto
+      - client-mosquitto:client-mosquitto
 
 networks:
   waittime-network:
     driver: bridge
-  stadium-network:
+  stadium_network:
     external: true
     name: stadium-event-generator_stadium-network
-  client-network:
+  client_network:
     external: true
-    name: service-to-client-broker_client-network
-  map-network:
-    external: true
-    name: map-service_map-network
+    name: client-broker_client-network
 
 volumes:
-  waittime_postgres_data:
-
-# NOTA:
-# - DOWNSTREAM: stadium-mosquitto (Stadium-Event-Generator, porta host 1883)
-# - UPSTREAM: client-mosquitto (Service-to-Client-Broker, porta host 1884)
-
+  waittime-db-data:
