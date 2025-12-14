@@ -213,4 +213,4 @@ class TestMapServiceClient:
             
             # Invalid POI should have default service_rate
             invalid_poi_result = next(p for p in pois if p['id'] == 'Invalid-POI')
-            assert invalid_poi_result['service_rate'] == 0.5
+            assert invalid_poi_result['service_rate'] == pytest.approx(0.5)
