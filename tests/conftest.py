@@ -1,4 +1,3 @@
-# tests/conftest.py
 import pytest
 import asyncio
 from datetime import datetime, timezone, timedelta
@@ -15,10 +14,10 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 os.environ['TESTING'] = 'True'
 os.environ['LOG_LEVEL'] = 'WARNING'
 
-# NOTA: Ajuste os imports para corresponder à sua estrutura de arquivos
+# Importa apenas o que está disponível
 from app import app
-from models import WaitTimeResponse, POIInfo, QueueState, CameraEvent
-from db.database import Base, get_db, init_db, close_db
+from models import WaitTimeResponse, POIInfo, QueueState
+from db.database import Base, get_db
 from db.repositories import WaitTimeRepository, POIRepository
 
 # Configuração do banco de dados de teste
@@ -208,41 +207,19 @@ async def cleanup_database(test_db_session):
     # Remove todos os dados após cada teste
     try:
         # Remove em ordem para evitar problemas de chave estrangeira
-        await test_db_session.execute("DELETE FROM camera_events")
-        await test_db_session.execute("DELETE FROM queue_states")
-        await test_db_session.execute("DELETE FROM poi_info")
+        # Verifica se as tabelas existem antes de tentar limpar
+        from sqlalchemy import text
+        
+        # Tabelas que podem existir
+        tables = ['camera_events', 'queue_states', 'poi_info']
+        
+        for table in tables:
+            try:
+                await test_db_session.execute(text(f"DELETE FROM {table}"))
+            except Exception as e:
+                # Tabela pode não existir, apenas continua
+                pass
+        
         await test_db_session.commit()
     except Exception:
         await test_db_session.rollback()
-
-# Mocks para serviços externos
-@pytest.fixture
-def mock_map_service_client(monkeypatch):
-    """Mock do MapServiceClient para evitar chamadas HTTP reais."""
-    from unittest.mock import AsyncMock, MagicMock
-    
-    mock_client = AsyncMock()
-    mock_client.fetch_pois = AsyncMock(return_value=[
-        {
-            "id": "Test-POI-1",
-            "name": "Test POI",
-            "type": "restroom",
-            "num_servers": 5,
-            "service_rate": 0.45,
-            "location": {"lat": 40.7128, "lng": -74.0060}
-        }
-    ])
-    mock_client.fetch_poi_by_id = AsyncMock(return_value={
-        "id": "Test-POI-1",
-        "name": "Test POI",
-        "type": "restroom",
-        "num_servers": 5,
-        "service_rate": 0.45
-    })
-    mock_client.health_check = AsyncMock(return_value={"status": "healthy"})
-    
-    # Monkeypatch do MapServiceClient
-    import services.map_service
-    monkeypatch.setattr(services.map_service, "MapServiceClient", MagicMock(return_value=mock_client))
-    
-    return mock_client
