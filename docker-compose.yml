@@ -34,7 +34,7 @@ services:
         condition: service_healthy
     environment:
       # PostgreSQL Database
-      POSTGRES_HOST: postgres
+      POSTGRES_HOST: postgres-waittime
       POSTGRES_PORT: 5432
       POSTGRES_DB: stadium_waittime
       POSTGRES_USER: postgres
@@ -52,7 +52,7 @@ services:
       
       # Service config
       SERVICE_PORT: 8001
-      LOG_LEVEL: INFO
+      LOG_LEVEL: DEBUG
     ports:
       - "8001:8001"
     networks:
