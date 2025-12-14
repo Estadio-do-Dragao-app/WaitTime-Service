@@ -19,10 +19,10 @@ class TestQueueModelMM1:
             sample_count=10
         )
         
-        assert result.wait_minutes == 0.0
-        assert result.confidence_lower == 0.0
-        assert result.confidence_upper == 0.0
-        assert result.utilization == 0.0
+        assert result.wait_minutes == pytest.approx(0.0)
+        assert result.confidence_lower == pytest.approx(0.0)
+        assert result.confidence_upper == pytest.approx(0.0)
+        assert result.utilization == pytest.approx(0.0)
         assert result.status == 'low'
     
     def test_low_utilization(self):
@@ -82,7 +82,7 @@ class TestQueueModelMM1:
         assert result.utilization >= 0.95
         assert result.status == 'overloaded'
         assert result.wait_minutes == float('inf')
-        assert result.confidence_lower == 15.0
+        assert result.confidence_lower == pytest.approx(15.0)
         assert result.confidence_upper == float('inf')
     
     def test_mm1_formula_correctness(self):
@@ -243,8 +243,8 @@ class TestArrivalRateSmoother:
         
         rate = smoother.update(5.0)
         
-        assert rate == 5.0
-        assert smoother.get_rate() == 5.0
+        assert rate == pytest.approx(5.0)
+        assert smoother.get_rate() == pytest.approx(5.0)
     
     def test_smoothing_effect(self):
         """Test exponential smoothing formula"""
@@ -313,8 +313,8 @@ class TestWaitTimeResult:
             status='medium'
         )
         
-        assert result.wait_minutes == 5.5
-        assert result.confidence_lower == 4.0
-        assert result.confidence_upper == 7.0
-        assert result.utilization == 0.65
+        assert result.wait_minutes == pytest.approx(5.5)
+        assert result.confidence_lower == pytest.approx(4.0)
+        assert result.confidence_upper == pytest.approx(7.0)
+        assert result.utilization == pytest.approx(0.65)
         assert result.status == 'medium'

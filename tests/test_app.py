@@ -88,7 +88,7 @@ class TestWaitTimeEndpoints:
         
         assert isinstance(data, list)
         # Should only get restroom POIs
-        assert len(data) >= 0  # Depends on join with POI table
+        assert len(data) > 0  # Should find at least one restroom POI
     
     @pytest.mark.asyncio
     async def test_get_all_wait_times_empty(self, test_client):
@@ -160,7 +160,7 @@ class TestPOIEndpoints:
         assert data['name'] == "Restrooms North Level 0 #1"
         assert data['poi_type'] == "restroom"
         assert data['num_servers'] == 8
-        assert data['service_rate'] == 0.5
+        assert data['service_rate'] == pytest.approx(0.5)
     
     @pytest.mark.asyncio
     async def test_get_poi_by_id_not_found(self, test_client):

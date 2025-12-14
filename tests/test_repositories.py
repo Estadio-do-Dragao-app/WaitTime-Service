@@ -125,9 +125,9 @@ class TestWaitTimeRepository:
         
         assert result is not None
         assert result.poi_id == "WC-Norte-L0-1"
-        assert result.wait_minutes == 5.0
-        assert result.confidence_lower == 4.0
-        assert result.confidence_upper == 6.0
+        assert result.wait_minutes == pytest.approx(5.0)
+        assert result.confidence_lower == pytest.approx(4.0)
+        assert result.confidence_upper == pytest.approx(6.0)
         assert result.status == "medium"
     
     @pytest.mark.asyncio
@@ -160,7 +160,7 @@ class TestWaitTimeRepository:
         # Verify latest values
         result = await repo.get_current_wait_time("Food-Sul-1")
         
-        assert result.wait_minutes == 6.0
+        assert result.wait_minutes == pytest.approx(6.0)
         assert result.status == "medium"
     
     @pytest.mark.asyncio
@@ -244,8 +244,8 @@ class TestWaitTimeRepository:
         
         assert raw_state is not None
         assert raw_state['poi_id'] == "Test-POI"
-        assert raw_state['arrival_rate'] == 2.0
-        assert raw_state['wait_minutes'] == 4.0
+        assert raw_state['arrival_rate'] == pytest.approx(2.0)
+        assert raw_state['wait_minutes'] == pytest.approx(4.0)
     
     @pytest.mark.asyncio
     async def test_get_queue_state_raw_not_found(self, test_db_session):

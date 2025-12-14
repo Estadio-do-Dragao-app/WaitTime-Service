@@ -55,7 +55,7 @@ class TestMapServiceClient:
             
             # Should have defaults added
             assert pois[0]['num_servers'] == 1
-            assert pois[0]['service_rate'] == 0.5
+            assert pois[0]['service_rate'] == pytest.approx(0.5)
     
     @pytest.mark.asyncio
     async def test_fetch_pois_http_error(self):

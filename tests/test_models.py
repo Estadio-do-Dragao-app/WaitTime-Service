@@ -74,7 +74,7 @@ class TestWaitTimeUpdate:
         )
         
         assert update.poi_id == "WC-Norte-L0-1"
-        assert update.wait_minutes == 6.5
+        assert update.wait_minutes == pytest.approx(6.5)
         assert update.status == "medium"
     
     def test_to_broker_message_format(self):
@@ -93,8 +93,8 @@ class TestWaitTimeUpdate:
         
         assert message['type'] == "waittime"
         assert message['poi'] == "Food-Sul-1"
-        assert message['minutes'] == 4.6  # Rounded to 1 decimal
-        assert message['ci95'] == [3.2, 6.0]  # Rounded to 1 decimal
+        assert message['minutes'] == pytest.approx(4.6)
+        assert message['ci95'] == pytest.approx([3.2, 6.0])
         assert message['status'] == "low"
         assert message['ts'] == timestamp.isoformat()
     
@@ -111,9 +111,9 @@ class TestWaitTimeUpdate:
         
         message = update.to_broker_message()
         
-        assert message['minutes'] == 3.1
-        assert message['ci95'][0] == 2.7
-        assert message['ci95'][1] == 4.7
+        assert message['minutes'] == pytest.approx(3.1)
+        assert message['ci95'][0] == pytest.approx(2.7)
+        assert message['ci95'][1] == pytest.approx(4.7)
 
 
 class TestWaitTimeResponse:
@@ -131,7 +131,7 @@ class TestWaitTimeResponse:
         )
         
         assert response.poi_id == "WC-Norte-L0-1"
-        assert response.wait_minutes == 5.5
+        assert response.wait_minutes == pytest.approx(5.5)
         assert response.status == "medium"
     
     def test_response_serialization(self):
@@ -149,9 +149,9 @@ class TestWaitTimeResponse:
         data = response.model_dump()
         
         assert data['poi_id'] == "Food-Sul-1"
-        assert data['wait_minutes'] == 3.0
-        assert data['confidence_lower'] == 2.5
-        assert data['confidence_upper'] == 3.5
+        assert data['wait_minutes'] == pytest.approx(3.0)
+        assert data['confidence_lower'] == pytest.approx(2.5)
+        assert data['confidence_upper'] == pytest.approx(3.5)
         assert data['status'] == "low"
 
 
@@ -172,7 +172,7 @@ class TestPOIInfo:
         assert poi.name == "Restrooms North Level 0 #1"
         assert poi.poi_type == "restroom"
         assert poi.num_servers == 8
-        assert poi.service_rate == 0.5
+        assert poi.service_rate == pytest.approx(0.5)
     
     def test_poi_types(self):
         """Test different POI types"""
@@ -204,7 +204,7 @@ class TestPOIInfo:
         assert data['name'] == "Store East #1"
         assert data['poi_type'] == "store"
         assert data['num_servers'] == 2
-        assert data['service_rate'] == 0.3
+        assert data['service_rate'] == pytest.approx(0.3)
 
 
 class TestQueueState:
@@ -224,8 +224,8 @@ class TestQueueState:
         )
         
         assert state.poi_id == "WC-Norte-L0-1"
-        assert state.arrival_rate == 2.5
-        assert state.current_wait_minutes == 5.0
+        assert state.arrival_rate == pytest.approx(2.5)
+        assert state.current_wait_minutes == pytest.approx(5.0)
         assert state.sample_count == 15
         assert state.status == "medium"
     

@@ -83,7 +83,7 @@ class TestDatabaseIntegration:
         
         assert stored is not None
         assert stored.poi_id == "Integration-Test-POI"
-        assert stored.wait_minutes == result.wait_minutes
+        assert stored.wait_minutes == pytest.approx(result.wait_minutes)
         assert stored.status == result.status
 
 
@@ -241,7 +241,7 @@ class TestAPIIntegration:
         assert response.status_code == 200
         wait_response = response.json()
         assert wait_response['poi_id'] == "API-Test-POI"
-        assert wait_response['wait_minutes'] == 4.5
+        assert wait_response['wait_minutes'] == pytest.approx(4.5)
         assert wait_response['status'] == "medium"
     
     @pytest.mark.asyncio
