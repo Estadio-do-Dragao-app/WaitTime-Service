@@ -141,12 +141,15 @@ class QueueModel:
         a = arrival_rate / service_rate  # total traffic
         
         # P0 calculation (probability of 0 customers)
-        sum_term = sum((a ** n) / math.factorial(n) for n in range(k))
-        last_term = (a ** k) / (math.factorial(k) * (1 - rho))
+        # Optimized with math.gamma for continuous or cached factorial if needed
+        # But for small k, simple loop is fine. Using lru_cache on a helper would be better for high k.
+        
+        sum_term = sum((a ** n) / self._get_factorial(n) for n in range(k))
+        last_term = (a ** k) / (self._get_factorial(k) * (1 - rho))
         P0 = 1 / (sum_term + last_term)
         
         # Probability of waiting (Erlang C)
-        C = ((a ** k) / math.factorial(k)) * (1 / (1 - rho)) * P0
+        C = ((a ** k) / self._get_factorial(k)) * (1 / (1 - rho)) * P0
         
         # Average wait time in queue
         Wq = C / (k * service_rate - arrival_rate)
@@ -176,6 +179,14 @@ class QueueModel:
             utilization=rho,
             status=status
         )
+
+    from functools import lru_cache
+
+    @staticmethod
+    @lru_cache(maxsize=128)
+    def _get_factorial(n: int) -> int:
+        """Cached factorial for repetitive M/M/k calculations"""
+        return math.factorial(n)
 
 
 class ArrivalRateSmoother:

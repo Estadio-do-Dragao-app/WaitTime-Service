@@ -8,11 +8,16 @@ import asyncio
 import json
 import logging
 from datetime import datetime, timezone
+from typing import Optional
 import json
 from collections import defaultdict
 import threading
 
 import paho.mqtt.client as mqtt
+try:
+    import aiomqtt  # Used in some code paths
+except ImportError:
+    aiomqtt = None  # Optional dependency
 
 from models import QueueEvent, WaitTimeUpdate
 from queueModel import QueueModel, ArrivalRateSmoother
