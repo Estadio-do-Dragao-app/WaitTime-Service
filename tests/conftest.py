@@ -1,3 +1,4 @@
+# tests/conftest.py
 import pytest
 import asyncio
 from datetime import datetime, timezone, timedelta
@@ -73,13 +74,13 @@ async def test_client(test_db_session):
     # Substitui a dependência do banco de dados
     app.dependency_overrides[get_db] = override_get_db
     
-    # Cria cliente assíncrono - RETORNA O OBJETO, NÃO UM GENERATOR!
+    # Cria cliente assíncrono
     async with AsyncClient(
         app=app, 
         base_url="http://testserver",
         timeout=30.0
     ) as client:
-        yield client  # Isto retorna o objeto AsyncClient
+        yield client  # Agora retorna o objeto AsyncClient, não um generator
     
     # Limpa as substituições
     app.dependency_overrides.clear()
@@ -203,26 +204,25 @@ def sample_pois():
 @pytest.fixture
 def mock_map_service_response():
     """Fornece resposta mockada do MapService."""
-    return {
-        "pois": [
-            {
-                "id": "WC-Norte-L0-1",
-                "name": "Restrooms North Level 0 #1",
-                "type": "restroom",
-                "num_servers": 8,
-                "service_rate": 0.5,
-                "location": {"lat": 40.7128, "lng": -74.0060}
-            },
-            {
-                "id": "Food-Sul-1",
-                "name": "Food Court South #1",
-                "type": "food",
-                "num_servers": 4,
-                "service_rate": 0.4,
-                "location": {"lat": 40.7128, "lng": -74.0060}
-            }
-        ]
-    }
+    # RETORNA UMA LISTA DIRETA, não um dicionário com chave 'pois'
+    return [
+        {
+            "id": "WC-Norte-L0-1",
+            "name": "Restrooms North Level 0 #1",
+            "type": "restroom",
+            "num_servers": 8,
+            "service_rate": 0.5,
+            "location": {"lat": 40.7128, "lng": -74.0060}
+        },
+        {
+            "id": "Food-Sul-1",
+            "name": "Food Court South #1",
+            "type": "food",
+            "num_servers": 4,
+            "service_rate": 0.4,
+            "location": {"lat": 40.7128, "lng": -74.0060}
+        }
+    ]
 
 @pytest.fixture
 def sample_queue_events():
@@ -264,3 +264,10 @@ async def cleanup_database(test_db_session):
         await test_db_session.commit()
     except Exception:
         await test_db_session.rollback()
+
+# Adicione esta fixture para registrar a marcação 'integration'
+def pytest_configure(config):
+    """Registra marcadores personalizados."""
+    config.addinivalue_line(
+        "markers", "integration: marca testes de integração"
+    )
