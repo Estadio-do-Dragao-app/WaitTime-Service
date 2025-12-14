@@ -10,13 +10,12 @@ import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 os.environ['TESTING'] = 'True'
-os.environ['LOG_LEVEL'] = 'CRITICAL'  # Reduz logs durante testes
+os.environ['LOG_LEVEL'] = 'CRITICAL'
 
 from app import app
 from db.database import Base, get_db
 from db.models import POI, QueueState, CameraEvent
 
-# Usa SQLite em memória para testes
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
 test_engine = create_async_engine(
@@ -54,10 +53,9 @@ async def setup_database():
     await test_engine.dispose()
 
 @pytest.fixture(scope="function")
-async def db_session():
+async def test_db_session():
     """Sessão de banco com rollback automático."""
     async with TestingSessionLocal() as session:
-        # Transação aninhada para rollback fácil
         await session.begin_nested()
         
         try:
@@ -67,13 +65,13 @@ async def db_session():
             await session.close()
 
 @pytest.fixture(scope="function")
-async def client(db_session):
+async def test_client(test_db_session):
     """Cliente de teste HTTP."""
     async def override_get_db():
         try:
-            yield db_session
+            yield test_db_session
         finally:
-            await db_session.rollback()
+            await test_db_session.rollback()
     
     app.dependency_overrides[get_db] = override_get_db
     
@@ -86,17 +84,178 @@ async def client(db_session):
     
     app.dependency_overrides.clear()
 
-# Fixtures de dados mantidas como antes...
-# (seed_pois, seed_queue_states, etc.)
+# Manter as fixtures originais que seus testes esperam:
+@pytest.fixture(scope="function")
+async def seed_pois(test_db_session):
+    """Popula o banco de dados com POIs de teste."""
+    test_pois_data = [
+        {
+            "id": "WC-Norte-L0-1",
+            "name": "Restrooms North Level 0 #1",
+            "poi_type": "restroom",
+            "num_servers": 8,
+            "service_rate": 0.5
+        },
+        {
+            "id": "WC-Sul-L1-1",
+            "name": "Restrooms South Level 1 #1",
+            "poi_type": "restroom",
+            "num_servers": 6,
+            "service_rate": 0.5
+        },
+        {
+            "id": "Food-Sul-1",
+            "name": "Food Court South #1",
+            "poi_type": "food",
+            "num_servers": 4,
+            "service_rate": 0.4
+        }
+    ]
+    
+    for poi_data in test_pois_data:
+        poi = POI(
+            id=poi_data["id"],
+            name=poi_data["name"],
+            poi_type=poi_data["poi_type"],
+            num_servers=poi_data["num_servers"],
+            service_rate=poi_data["service_rate"]
+        )
+        test_db_session.add(poi)
+    
+    await test_db_session.commit()
+    return test_pois_data
 
-# Adicionar marcadores
-def pytest_collection_modifyitems(config, items):
-    """Adiciona marcador 'asyncio' automaticamente para testes async."""
-    for item in items:
-        if asyncio.iscoroutinefunction(item.function):
-            item.add_marker(pytest.mark.asyncio)
+@pytest.fixture(scope="function")
+async def seed_queue_states(test_db_session):
+    """Popula o banco de dados com estados de fila de teste."""
+    test_states = [
+        {
+            "poi_id": "WC-Norte-L0-1",
+            "arrival_rate": 2.5,
+            "current_wait_minutes": 5.2,
+            "confidence_lower": 4.0,
+            "confidence_upper": 6.5,
+            "sample_count": 50,
+            "status": "medium"
+        },
+        {
+            "poi_id": "WC-Sul-L1-1",
+            "arrival_rate": 1.8,
+            "current_wait_minutes": 3.1,
+            "confidence_lower": 2.5,
+            "confidence_upper": 3.8,
+            "sample_count": 40,
+            "status": "low"
+        },
+        {
+            "poi_id": "Food-Sul-1",
+            "arrival_rate": 3.2,
+            "current_wait_minutes": 8.7,
+            "confidence_lower": 7.0,
+            "confidence_upper": 10.5,
+            "sample_count": 30,
+            "status": "high"
+        }
+    ]
+    
+    for state_data in test_states:
+        state = QueueState(
+            poi_id=state_data["poi_id"],
+            arrival_rate=state_data["arrival_rate"],
+            current_wait_minutes=state_data["current_wait_minutes"],
+            confidence_lower=state_data["confidence_lower"],
+            confidence_upper=state_data["confidence_upper"],
+            sample_count=state_data["sample_count"],
+            status=state_data["status"],
+            last_updated=datetime.now(timezone.utc)
+        )
+        test_db_session.add(state)
+    
+    await test_db_session.commit()
+    return test_states
+
+@pytest.fixture
+def sample_pois():
+    """Fornece dados de POI de exemplo para teste."""
+    return [
+        {
+            "id": "WC-Norte-L0-1",
+            "name": "Restrooms North Level 0 #1",
+            "type": "restroom",
+            "num_servers": 8,
+            "service_rate": 0.5
+        },
+        {
+            "id": "Food-Sul-1",
+            "name": "Food Court South #1",
+            "type": "food",
+            "num_servers": 4,
+            "service_rate": 0.4
+        },
+        {
+            "id": "Store-Este-1",
+            "name": "Store East #1",
+            "type": "store",
+            "num_servers": 2,
+            "service_rate": 0.3
+        }
+    ]
+
+@pytest.fixture
+def mock_map_service_response():
+    """Fornece resposta mockada do MapService."""
+    return [
+        {
+            "id": "WC-Norte-L0-1",
+            "name": "Restrooms North Level 0 #1",
+            "type": "restroom",
+            "num_servers": 8,
+            "service_rate": 0.5,
+            "location": {"lat": 40.7128, "lng": -74.0060}
+        },
+        {
+            "id": "Food-Sul-1",
+            "name": "Food Court South #1",
+            "type": "food",
+            "num_servers": 4,
+            "service_rate": 0.4,
+            "location": {"lat": 40.7128, "lng": -74.0060}
+        }
+    ]
+
+@pytest.fixture
+def sample_queue_events():
+    """Fornece eventos de fila de exemplo para teste."""
+    base_time = datetime.now(timezone.utc)
+    return [
+        {
+            "poi_id": "WC-Norte-L0-1",
+            "event_type": "entry",
+            "count": 2,
+            "camera_id": "cam-123",
+            "timestamp": base_time - timedelta(minutes=2)
+        },
+        {
+            "poi_id": "WC-Norte-L0-1",
+            "event_type": "exit",
+            "count": 1,
+            "camera_id": "cam-123",
+            "timestamp": base_time - timedelta(minutes=1)
+        },
+        {
+            "poi_id": "WC-Sul-L1-1",
+            "event_type": "entry",
+            "count": 3,
+            "camera_id": "cam-456",
+            "timestamp": base_time - timedelta(minutes=3)
+        }
+    ]
 
 def pytest_configure(config):
-    config.addinivalue_line("markers", "integration: marca testes de integração")
-    config.addinivalue_line("markers", "slow: marca testes lentos")
-    config.addinivalue_line("markers", "database: testes que usam banco de dados")
+    """Registra marcadores personalizados."""
+    config.addinivalue_line(
+        "markers", "integration: marca testes de integração"
+    )
+    config.addinivalue_line(
+        "markers", "slow: marca testes lentos"
+    )
