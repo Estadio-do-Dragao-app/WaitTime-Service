@@ -14,7 +14,7 @@ class TestMapServiceClient:
     @pytest.mark.asyncio
     async def test_fetch_pois_success(self, mock_map_service_response):
         """Test successfully fetching POIs from MapService"""
-        client = MapServiceClient(base_url="http://test-map-service:8000")
+        client = MapServiceClient(base_url="http://test-map-service:8000")  # NOSONAR
         
         # Mock httpx response
         with patch('httpx.AsyncClient.get') as mock_get:
@@ -28,12 +28,12 @@ class TestMapServiceClient:
             assert len(pois) == 2
             assert pois[0]['id'] == "WC-Norte-L0-1"
             assert pois[1]['id'] == "Food-Sul-1"
-            mock_get.assert_called_once_with("http://test-map-service:8000/pois")
+            mock_get.assert_called_once_with("http://test-map-service:8000/pois")  # NOSONAR
     
     @pytest.mark.asyncio
     async def test_fetch_pois_with_missing_fields(self):
         """Test fetching POIs with missing num_servers/service_rate adds defaults"""
-        client = MapServiceClient(base_url="http://test-map-service:8000")
+        client = MapServiceClient(base_url="http://test-map-service:8000")  # NOSONAR
         
         # POI missing num_servers and service_rate
         incomplete_pois = [
@@ -60,7 +60,7 @@ class TestMapServiceClient:
     @pytest.mark.asyncio
     async def test_fetch_pois_http_error(self):
         """Test handling HTTP errors when fetching POIs"""
-        client = MapServiceClient(base_url="http://test-map-service:8000")
+        client = MapServiceClient(base_url="http://test-map-service:8000")  # NOSONAR
         
         with patch('httpx.AsyncClient.get') as mock_get:
             mock_get.side_effect = httpx.HTTPError("Connection failed")
@@ -71,7 +71,7 @@ class TestMapServiceClient:
     @pytest.mark.asyncio
     async def test_fetch_pois_timeout(self):
         """Test handling timeout when fetching POIs"""
-        client = MapServiceClient(base_url="http://test-map-service:8000", timeout=1)
+        client = MapServiceClient(base_url="http://test-map-service:8000", timeout=1)  # NOSONAR
         
         with patch('httpx.AsyncClient.get') as mock_get:
             mock_get.side_effect = httpx.TimeoutException("Timeout")
@@ -82,7 +82,7 @@ class TestMapServiceClient:
     @pytest.mark.asyncio
     async def test_fetch_poi_by_id_success(self):
         """Test successfully fetching a single POI by ID"""
-        client = MapServiceClient(base_url="http://test-map-service:8000")
+        client = MapServiceClient(base_url="http://test-map-service:8000")  # NOSONAR
         
         poi_data = {
             "id": "WC-Norte-L0-1",
@@ -102,12 +102,12 @@ class TestMapServiceClient:
             
             assert poi['id'] == "WC-Norte-L0-1"
             assert poi['num_servers'] == 8
-            mock_get.assert_called_once_with("http://test-map-service:8000/pois/WC-Norte-L0-1")
+            mock_get.assert_called_once_with("http://test-map-service:8000/pois/WC-Norte-L0-1")  # NOSONAR
     
     @pytest.mark.asyncio
     async def test_fetch_poi_by_id_not_found(self):
         """Test fetching non-existent POI raises error"""
-        client = MapServiceClient(base_url="http://test-map-service:8000")
+        client = MapServiceClient(base_url="http://test-map-service:8000")  # NOSONAR
         
         with patch('httpx.AsyncClient.get') as mock_get:
             mock_response = MagicMock()
@@ -124,7 +124,7 @@ class TestMapServiceClient:
     @pytest.mark.asyncio
     async def test_health_check_success(self):
         """Test health check when service is available"""
-        client = MapServiceClient(base_url="http://test-map-service:8000")
+        client = MapServiceClient(base_url="http://test-map-service:8000")  # NOSONAR
         
         with patch('httpx.AsyncClient.get') as mock_get:
             mock_response = MagicMock()
@@ -134,12 +134,12 @@ class TestMapServiceClient:
             is_healthy = await client.health_check()
             
             assert is_healthy is True
-            mock_get.assert_called_once_with("http://test-map-service:8000/health")
+            mock_get.assert_called_once_with("http://test-map-service:8000/health")  # NOSONAR
     
     @pytest.mark.asyncio
     async def test_health_check_service_down(self):
         """Test health check when service is unavailable"""
-        client = MapServiceClient(base_url="http://test-map-service:8000")
+        client = MapServiceClient(base_url="http://test-map-service:8000")  # NOSONAR
         
         with patch('httpx.AsyncClient.get') as mock_get:
             mock_response = MagicMock()
@@ -153,7 +153,7 @@ class TestMapServiceClient:
     @pytest.mark.asyncio
     async def test_health_check_connection_error(self):
         """Test health check when connection fails"""
-        client = MapServiceClient(base_url="http://test-map-service:8000")
+        client = MapServiceClient(base_url="http://test-map-service:8000")  # NOSONAR
         
         with patch('httpx.AsyncClient.get') as mock_get:
             mock_get.side_effect = Exception("Connection refused")
@@ -165,17 +165,17 @@ class TestMapServiceClient:
     def test_client_initialization_default_url(self):
         """Test client uses default URL from settings"""
         with patch('services.map_service.settings') as mock_settings:
-            mock_settings.MAP_SERVICE_URL = "http://default-map:8000"
+            mock_settings.MAP_SERVICE_URL = "http://default-map:8000"  # NOSONAR
             
             client = MapServiceClient()
             
-            assert client.base_url == "http://default-map:8000"
+            assert client.base_url == "http://default-map:8000"  # NOSONAR
     
     def test_client_initialization_custom_url(self):
         """Test client can use custom URL"""
-        client = MapServiceClient(base_url="http://custom-map:9000")
+        client = MapServiceClient(base_url="http://custom-map:9000")  # NOSONAR
         
-        assert client.base_url == "http://custom-map:9000"
+        assert client.base_url == "http://custom-map:9000"  # NOSONAR
     
     def test_client_initialization_custom_timeout(self):
         """Test client can use custom timeout"""
@@ -186,7 +186,7 @@ class TestMapServiceClient:
     @pytest.mark.asyncio
     async def test_fetch_pois_validates_response_structure(self, mock_map_service_response):
         """Test that fetch_pois validates response has required queue fields"""
-        client = MapServiceClient(base_url="http://test-map-service:8000")
+        client = MapServiceClient(base_url="http://test-map-service:8000")  # NOSONAR
         
         # Valid POI with all fields
         valid_poi = mock_map_service_response[0]

@@ -48,7 +48,7 @@ class Settings(BaseSettings):
     SIGNIFICANT_CHANGE_THRESHOLD: float = 15.0
     
     # ==================== EXTERNAL SERVICES ====================
-    MAP_SERVICE_URL: str = "http://mapservice:8000"
+    MAP_SERVICE_URL: str = "http://mapservice:8000"  # NOSONAR
     MAP_SERVICE_TIMEOUT: int = 10
     
     # Logging
