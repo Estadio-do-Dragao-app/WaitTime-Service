@@ -18,7 +18,8 @@ from db.repositories import WaitTimeRepository, POIRepository
 from consumer import EventConsumer
 from services.map_service import MapServiceClient
 
-logging.basicConfig(level=logging.INFO)
+import os
+logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
 logger = logging.getLogger(__name__)
 
 # Global event consumer instance

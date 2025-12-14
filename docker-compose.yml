@@ -1,5 +1,5 @@
 # Docker Compose - WaitTime Service
-# Usa DOIS brokers MQTT separados
+# Usa os brokers MQTT dos outros serviços (não cria duplicados)
 
 version: '3.8'
 
@@ -11,19 +11,19 @@ services:
       dockerfile: Dockerfile
     container_name: stadium-waittime-service
     environment:
-      # DOWNSTREAM MQTT Broker (receives from simulator)
-      DOWNSTREAM_BROKER_HOST: mosquitto-downstream
+      # DOWNSTREAM MQTT Broker (receives from simulator - Stadium-Event-Generator)
+      DOWNSTREAM_BROKER_HOST: stadium-mosquitto
       DOWNSTREAM_BROKER_PORT: 1883
       DOWNSTREAM_TOPIC_QUEUES: stadium/events/queues
       DOWNSTREAM_TOPIC_ALL: stadium/events/all
       
-      # UPSTREAM MQTT Broker (publishes to clients)
-      UPSTREAM_BROKER_HOST: mosquitto-upstream
+      # UPSTREAM MQTT Broker (publishes to clients - Service-to-Client-Broker)
+      UPSTREAM_BROKER_HOST: client-mosquitto
       UPSTREAM_BROKER_PORT: 1883
       UPSTREAM_TOPIC_PREFIX: stadium/waittime
       
       # PostgreSQL Database
-      POSTGRES_HOST: postgres
+      POSTGRES_HOST: postgres-waittime
       POSTGRES_PORT: 5432
       POSTGRES_DB: stadium_waittime
       POSTGRES_USER: postgres
@@ -34,38 +34,55 @@ services:
       
       # Service config
       SERVICE_PORT: 8001
-      LOG_LEVEL: INFO
+      LOG_LEVEL: DEBUG
     ports:
       - "8001:8001"
+    depends_on:
+      - postgres-waittime
     restart: unless-stopped
     networks:
+      - waittime-network
       - stadium-network
+      - client-network
+      - map-network
 
-  # DOWNSTREAM Mosquitto (receives events from simulator)
-  mosquitto-downstream:
-    image: eclipse-mosquitto:2
-    container_name: stadium-mosquitto-downstream
+  # PostgreSQL for WaitTime Service
+  postgres-waittime:
+    image: postgres:15-alpine
+    container_name: postgres-waittime
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: stadium_waittime
     ports:
-      - "1883:1883"
-    command: mosquitto -c /mosquitto-no-auth.conf
+      - "5435:5432"
+    volumes:
+      - waittime_postgres_data:/var/lib/postgresql/data
     networks:
-      - stadium-network
-
-  # UPSTREAM Mosquitto (publishes to client apps)
-  mosquitto-upstream:
-    image: eclipse-mosquitto:2
-    container_name: stadium-mosquitto-upstream
-    ports:
-      - "1884:1883"
-    command: mosquitto -c /mosquitto-no-auth.conf
-    networks:
-      - stadium-network
+      - waittime-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
 networks:
+  waittime-network:
+    driver: bridge
   stadium-network:
     external: true
+    name: stadium-event-generator_stadium-network
+  client-network:
+    external: true
+    name: service-to-client-broker_client-network
+  map-network:
+    external: true
+    name: map-service_map-network
+
+volumes:
+  waittime_postgres_data:
 
 # NOTA:
-# - DOWNSTREAM (porta 1883): Simulador publica eventos aqui
-# - UPSTREAM (porta 1884): Clientes subscrevem wait times aqui
-# - Para brokers externos, ajustar os hostnames nas variáveis de ambiente
+# - DOWNSTREAM: stadium-mosquitto (Stadium-Event-Generator, porta host 1883)
+# - UPSTREAM: client-mosquitto (Service-to-Client-Broker, porta host 1884)
+
