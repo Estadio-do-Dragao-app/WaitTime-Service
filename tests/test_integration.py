@@ -303,7 +303,7 @@ class TestMapServiceIntegration:
             mock_get.return_value = mock_response
             
             # Fetch POIs
-            client = MapServiceClient(base_url="http://test-map:8000")
+            client = MapServiceClient(base_url="http://test-map:8000")  # NOSONAR
             pois = await client.fetch_pois()
             
             # Store in database

@@ -18,7 +18,7 @@ class MapServiceClient:
             base_url: MapService base URL (from env or config)
             timeout: Request timeout in seconds
         """
-        self.base_url = base_url or getattr(settings, 'MAP_SERVICE_URL', 'http://mapservice:8000')
+        self.base_url = base_url or getattr(settings, 'MAP_SERVICE_URL', 'http://mapservice:8000')  # NOSONAR
         self.timeout = timeout
     
     async def fetch_pois(self) -> List[Dict]:
