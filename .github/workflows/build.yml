@@ -43,7 +43,7 @@ jobs:
           python -m coverage report
       
       - name: Upload coverage reports
-        if: always()  # Executa mesmo se os testes falharem
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: coverage-reports
@@ -51,6 +51,11 @@ jobs:
             coverage.xml
             htmlcov/
           retention-days: 7
+      
+      - name: Validate test results
+        run: |
+          echo "Test execution completed"
+          ls -la coverage.xml htmlcov/
 
   sonarqube:
     name: SonarQube Scan
