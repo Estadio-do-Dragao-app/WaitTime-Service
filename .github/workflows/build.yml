@@ -25,7 +25,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install "pytest>=7.0,<9.0" pytest-asyncio==0.23.0 pytest-cov pytest-mock coverage aiosqlite httpx-sse
+          pip install pytest==7.4.3 pytest-asyncio==0.21.1 pytest-cov pytest-mock coverage aiosqlite httpx-sse
       
       - name: Run tests and generate coverage
         id: tests
