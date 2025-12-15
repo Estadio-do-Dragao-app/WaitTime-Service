@@ -25,7 +25,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install httpx-sse
+          pip install httpx-sse pytest pytest-asyncio pytest-cov pytest-mock httpx
       
       - name: Run tests with coverage
         env:
@@ -49,6 +49,21 @@ jobs:
           pkill -f python || true
           pkill -f pytest || true
       
+      - name: Debug - Check running processes after tests
+        run: |
+          echo "Processes after tests:"
+          ps aux | grep python || true
+          echo "Open ports:"
+          netstat -tulpn || ss -tulpn || true
+
+      - name: Force kill any remaining processes
+        run: |
+          # Matar todos processos Python
+          pkill -9 -f python || true
+          pkill -9 -f pytest || true
+          # Esperar um pouco
+          sleep 2
+
       - name: Upload coverage reports
         uses: actions/upload-artifact@v4
         with:
