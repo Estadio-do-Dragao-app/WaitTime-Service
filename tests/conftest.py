@@ -34,15 +34,14 @@ TestingSessionLocal = async_sessionmaker(
 )
 
 from unittest.mock import MagicMock, patch, AsyncMock
-
+"""
 @pytest.fixture(scope="session")
 def event_loop():
-    """Event loop para sessão de teste."""
     policy = asyncio.get_event_loop_policy()
     loop = policy.new_event_loop()
     yield loop
     loop.close()
-
+"""
 @pytest.fixture(scope="session", autouse=True)
 def mock_app_dependencies():
     """
