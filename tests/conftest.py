@@ -34,28 +34,10 @@ TestingSessionLocal = async_sessionmaker(
 )
 
 from unittest.mock import MagicMock, patch, AsyncMock
-"""
-@pytest.fixture(scope="session")
-def event_loop():
-    policy = asyncio.get_event_loop_policy()
-    loop = policy.new_event_loop()
-    yield loop
-    loop.close()
-"""
 
-@pytest.fixture(scope="session", autouse=True)
-def event_loop_policy():
-    """Cleanup event loop policy to prevent hanging."""
-    import asyncio
-    policy = asyncio.get_event_loop_policy()
-    yield
-    try:
-        loop = policy.get_event_loop()
-        if loop.is_running():
-            loop.stop()
-        loop.close()
-    except:
-        pass
+# NOTE: pytest-asyncio >= 0.21 manages event loops automatically.
+# No custom event_loop or event_loop_policy fixtures needed.
+# Previous custom fixtures were causing hangs in GitHub Actions CI.
 
 @pytest.fixture(scope="session", autouse=True)
 def mock_app_dependencies():
