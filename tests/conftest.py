@@ -42,6 +42,21 @@ def event_loop():
     yield loop
     loop.close()
 """
+
+@pytest.fixture(scope="session", autouse=True)
+def event_loop_policy():
+    """Cleanup event loop policy to prevent hanging."""
+    import asyncio
+    policy = asyncio.get_event_loop_policy()
+    yield
+    try:
+        loop = policy.get_event_loop()
+        if loop.is_running():
+            loop.stop()
+        loop.close()
+    except:
+        pass
+
 @pytest.fixture(scope="session", autouse=True)
 def mock_app_dependencies():
     """
