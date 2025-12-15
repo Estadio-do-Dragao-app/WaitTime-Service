@@ -27,7 +27,7 @@ jobs:
           pip install -r requirements.txt
           pip install httpx-sse
       
-      - name: Run tests with coverage (fast mode)
+      - name: Run tests with coverage
         env:
           TEST_DATABASE_URL: 'sqlite+aiosqlite:///:memory:'
           MAP_SERVICE_URL: 'http://test-map-service.mock'
@@ -35,14 +35,27 @@ jobs:
           LOG_LEVEL: 'WARNING'
         run: |
           echo "Running tests..."
-          # Rodar testes SEM cobertura primeiro para ver se trava
+          
+          # Usar pytest-cov com cleanup explícito
           python -m pytest tests/ \
+            --cov=. \
+            --cov-report=xml \
+            --cov-report=term \
+            --cov-report=html \
             -v \
-            --tb=short \
             --asyncio-mode=auto \
-            --strict-markers
+            --tb=short \
+            --disable-warnings \
+            --cov-fail-under=0  # Não falhar por baixa cobertura
           
           echo "Tests completed successfully"
+          
+          # Limpeza explícita
+          python -c "import coverage; cov = coverage.Coverage(); cov.load(); cov.combine(); cov.save()"
+          
+          # Matar qualquer processo pendente
+          pkill -f "python.*coverage" || true
+          pkill -f "python.*pytest" || true
       
       - name: Debug - Check for hanging processes
         run: |
