@@ -1,0 +1,3401 @@
+============================= test session starts =============================
+platform win32 -- Python 3.11.9, pytest-7.4.3, pluggy-1.6.0
+rootdir: C:\Users\joaov\OneDrive\Ambiente de Trabalho\UA\projeto\WaitTime-Service
+plugins: anyio-3.7.1, Faker-20.1.0, asyncio-0.21.1, cov-4.1.0, mock-3.12.0
+asyncio: mode=Mode.STRICT
+collected 20 items
+
+tests\test_app.py .FF.EEFEEFEFEF..EE..                                   [100%]
+
+=================================== ERRORS ====================================
+_______ ERROR at setup of TestWaitTimeEndpoints.test_get_all_wait_times _______
+
+self = <sqlalchemy.engine.base.Connection object at 0x000001CDBCD83D90>
+dialect = <sqlalchemy.dialects.sqlite.aiosqlite.SQLiteDialect_aiosqlite object at 0x000001CDB8C1D3D0>
+context = <sqlalchemy.dialects.sqlite.aiosqlite.SQLiteExecutionContext_aiosqlite object at 0x000001CDBCD83AD0>
+
+    def _exec_insertmany_context(
+        self,
+        dialect: Dialect,
+        context: ExecutionContext,
+    ) -> CursorResult[Any]:
+        """continue the _execute_context() method for an "insertmanyvalues"
+        operation, which will invoke DBAPI
+        cursor.execute() one or more times with individual log and
+        event hook calls.
+    
+        """
+    
+        if dialect.bind_typing is BindTyping.SETINPUTSIZES:
+            generic_setinputsizes = context._prepare_set_input_sizes()
+        else:
+            generic_setinputsizes = None
+    
+        cursor, str_statement, parameters = (
+            context.cursor,
+            context.statement,
+            context.parameters,
+        )
+    
+        effective_parameters = parameters
+    
+        engine_events = self._has_events or self.engine._has_events
+        if self.dialect._has_events:
+            do_execute_dispatch: Iterable[
+                Any
+            ] = self.dialect.dispatch.do_execute
+        else:
+            do_execute_dispatch = ()
+    
+        if self._echo:
+            stats = context._get_cache_stats() + " (insertmanyvalues)"
+    
+        for imv_batch in dialect._deliver_insertmanyvalues_batches(
+            cursor,
+            str_statement,
+            effective_parameters,
+            generic_setinputsizes,
+            context,
+        ):
+            if imv_batch.processed_setinputsizes:
+                try:
+                    dialect.do_set_input_sizes(
+                        context.cursor,
+                        imv_batch.processed_setinputsizes,
+                        context,
+                    )
+                except BaseException as e:
+                    self._handle_dbapi_exception(
+                        e,
+                        sql_util._long_statement(imv_batch.replaced_statement),
+                        imv_batch.replaced_parameters,
+                        None,
+                        context,
+                    )
+    
+            sub_stmt = imv_batch.replaced_statement
+            sub_params = imv_batch.replaced_parameters
+    
+            if engine_events:
+                for fn in self.dispatch.before_cursor_execute:
+                    sub_stmt, sub_params = fn(
+                        self,
+                        cursor,
+                        sub_stmt,
+                        sub_params,
+                        context,
+                        True,
+                    )
+    
+            if self._echo:
+                self._log_info(sql_util._long_statement(sub_stmt))
+    
+                imv_stats = f""" {
+                            imv_batch.batchnum}/{imv_batch.total_batches} ({
+                            'ordered'
+                            if imv_batch.rows_sorted else 'unordered'
+                        }{
+                            '; batch not supported'
+                            if imv_batch.is_downgraded
+                            else ''
+                        })"""
+    
+                if imv_batch.batchnum == 1:
+                    stats += imv_stats
+                else:
+                    stats = f"insertmanyvalues{imv_stats}"
+    
+                if not self.engine.hide_parameters:
+                    self._log_info(
+                        "[%s] %r",
+                        stats,
+                        sql_util._repr_params(
+                            sub_params,
+                            batches=10,
+                            ismulti=False,
+                        ),
+                    )
+                else:
+                    self._log_info(
+                        "[%s] [SQL parameters hidden due to "
+                        "hide_parameters=True]",
+                        stats,
+                    )
+    
+            try:
+                for fn in do_execute_dispatch:
+                    if fn(
+                        cursor,
+                        sub_stmt,
+                        sub_params,
+                        context,
+                    ):
+                        break
+                else:
+>                   dialect.do_execute(
+                        cursor,
+                        sub_stmt,
+                        sub_params,
+                        context,
+                    )
+
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:2112: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\default.py:922: in do_execute
+    cursor.execute(statement, parameters)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py:146: in execute
+    self._adapt_connection._handle_exception(error)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py:298: in _handle_exception
+    raise error
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py:128: in execute
+    self.await_(_cursor.execute(operation, parameters))
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:125: in await_only
+    return current.driver.switch(awaitable)  # type: ignore[no-any-return]
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:185: in greenlet_spawn
+    value = await result
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\cursor.py:48: in execute
+    await self._execute(self._cursor.execute, sql, parameters)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\cursor.py:40: in _execute
+    return await self._conn._execute(fn, *args, **kwargs)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\core.py:133: in _execute
+    return await future
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <Connection(Thread-1, started daemon 35100)>
+
+    def run(self) -> None:
+        """
+        Execute function calls on a separate thread.
+    
+        :meta private:
+        """
+        while True:
+            # Continues running until all queue items are processed,
+            # even after connection is closed (so we can finalize all
+            # futures)
+            try:
+                future, function = self._tx.get(timeout=0.1)
+            except Empty:
+                if self._running:
+                    continue
+                break
+            try:
+                LOG.debug("executing %s", function)
+>               result = function()
+E               sqlite3.IntegrityError: UNIQUE constraint failed: pois.id
+
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\core.py:106: IntegrityError
+
+The above exception was the direct cause of the following exception:
+
+event_loop = <ProactorEventLoop running=False closed=False debug=False>
+request = <SubRequest 'seed_pois' for <Function test_get_all_wait_times>>
+kwargs = {'test_db_session': <sqlalchemy.ext.asyncio.session.AsyncSession object at 0x000001CDBD750150>}
+setup = <function _wrap_async_fixture.<locals>._async_fixture_wrapper.<locals>.setup at 0x000001CDBBEB5EE0>
+
+    @functools.wraps(fixture)
+    def _async_fixture_wrapper(
+        event_loop: asyncio.AbstractEventLoop, request: SubRequest, **kwargs: Any
+    ):
+        func = _perhaps_rebind_fixture_func(
+            fixture, request.instance, fixturedef.unittest
+        )
+    
+        async def setup():
+            res = await func(**_add_kwargs(func, kwargs, event_loop, request))
+            return res
+    
+>       return event_loop.run_until_complete(setup())
+
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\pytest_asyncio\plugin.py:326: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\asyncio\base_events.py:654: in run_until_complete
+    return future.result()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\pytest_asyncio\plugin.py:323: in setup
+    res = await func(**_add_kwargs(func, kwargs, event_loop, request))
+tests\conftest.py:126: in seed_pois
+    await test_db_session.commit()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\ext\asyncio\session.py:1011: in commit
+    await greenlet_spawn(self.sync_session.commit)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:192: in greenlet_spawn
+    result = context.switch(value)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:1969: in commit
+    trans.commit(_to_root=True)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\state_changes.py:139: in _go
+    ret_value = fn(self, *arg, **kw)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:1256: in commit
+    self._prepare_impl()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\state_changes.py:139: in _go
+    ret_value = fn(self, *arg, **kw)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:1231: in _prepare_impl
+    self.session.flush()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:4312: in flush
+    self._flush(objects)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:4447: in _flush
+    with util.safe_reraise():
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\langhelpers.py:146: in __exit__
+    raise exc_value.with_traceback(exc_tb)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:4408: in _flush
+    flush_context.execute()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\unitofwork.py:466: in execute
+    rec.execute(self)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\unitofwork.py:642: in execute
+    util.preloaded.orm_persistence.save_obj(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\persistence.py:93: in save_obj
+    _emit_insert_statements(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\persistence.py:1136: in _emit_insert_statements
+    result = connection.execute(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:1416: in execute
+    return meth(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\sql\elements.py:516: in _execute_on_connection
+    return connection._execute_clauseelement(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:1639: in _execute_clauseelement
+    ret = self._execute_context(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:1843: in _execute_context
+    return self._exec_insertmany_context(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:2120: in _exec_insertmany_context
+    self._handle_dbapi_exception(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:2343: in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:2112: in _exec_insertmany_context
+    dialect.do_execute(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\default.py:922: in do_execute
+    cursor.execute(statement, parameters)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py:146: in execute
+    self._adapt_connection._handle_exception(error)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py:298: in _handle_exception
+    raise error
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py:128: in execute
+    self.await_(_cursor.execute(operation, parameters))
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:125: in await_only
+    return current.driver.switch(awaitable)  # type: ignore[no-any-return]
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:185: in greenlet_spawn
+    value = await result
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\cursor.py:48: in execute
+    await self._execute(self._cursor.execute, sql, parameters)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\cursor.py:40: in _execute
+    return await self._conn._execute(fn, *args, **kwargs)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\core.py:133: in _execute
+    return await future
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <Connection(Thread-1, started daemon 35100)>
+
+    def run(self) -> None:
+        """
+        Execute function calls on a separate thread.
+    
+        :meta private:
+        """
+        while True:
+            # Continues running until all queue items are processed,
+            # even after connection is closed (so we can finalize all
+            # futures)
+            try:
+                future, function = self._tx.get(timeout=0.1)
+            except Empty:
+                if self._running:
+                    continue
+                break
+            try:
+                LOG.debug("executing %s", function)
+>               result = function()
+E               sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) UNIQUE constraint failed: pois.id
+E               [SQL: INSERT INTO pois (id, name, poi_type, num_servers, service_rate, updated_at) VALUES (?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?) RETURNING created_at, id]
+E               [parameters: ('WC-Norte-L0-1', 'Restrooms North Level 0 #1', 'restroom', 8, 0.5, None, 'WC-Sul-L1-1', 'Restrooms South Level 1 #1', 'restroom', 6, 0.5, None, 'Food-Sul-1', 'Food Court South #1', 'food', 4, 0.4, None)]
+E               (Background on this error at: https://sqlalche.me/e/20/gkpj)
+
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\core.py:106: IntegrityError
+_ ERROR at setup of TestWaitTimeEndpoints.test_get_all_wait_times_filtered_by_type _
+
+self = <sqlalchemy.engine.base.Connection object at 0x000001CDBC4F9CD0>
+dialect = <sqlalchemy.dialects.sqlite.aiosqlite.SQLiteDialect_aiosqlite object at 0x000001CDB8C1D3D0>
+context = <sqlalchemy.dialects.sqlite.aiosqlite.SQLiteExecutionContext_aiosqlite object at 0x000001CDBC5AD310>
+
+    def _exec_insertmany_context(
+        self,
+        dialect: Dialect,
+        context: ExecutionContext,
+    ) -> CursorResult[Any]:
+        """continue the _execute_context() method for an "insertmanyvalues"
+        operation, which will invoke DBAPI
+        cursor.execute() one or more times with individual log and
+        event hook calls.
+    
+        """
+    
+        if dialect.bind_typing is BindTyping.SETINPUTSIZES:
+            generic_setinputsizes = context._prepare_set_input_sizes()
+        else:
+            generic_setinputsizes = None
+    
+        cursor, str_statement, parameters = (
+            context.cursor,
+            context.statement,
+            context.parameters,
+        )
+    
+        effective_parameters = parameters
+    
+        engine_events = self._has_events or self.engine._has_events
+        if self.dialect._has_events:
+            do_execute_dispatch: Iterable[
+                Any
+            ] = self.dialect.dispatch.do_execute
+        else:
+            do_execute_dispatch = ()
+    
+        if self._echo:
+            stats = context._get_cache_stats() + " (insertmanyvalues)"
+    
+        for imv_batch in dialect._deliver_insertmanyvalues_batches(
+            cursor,
+            str_statement,
+            effective_parameters,
+            generic_setinputsizes,
+            context,
+        ):
+            if imv_batch.processed_setinputsizes:
+                try:
+                    dialect.do_set_input_sizes(
+                        context.cursor,
+                        imv_batch.processed_setinputsizes,
+                        context,
+                    )
+                except BaseException as e:
+                    self._handle_dbapi_exception(
+                        e,
+                        sql_util._long_statement(imv_batch.replaced_statement),
+                        imv_batch.replaced_parameters,
+                        None,
+                        context,
+                    )
+    
+            sub_stmt = imv_batch.replaced_statement
+            sub_params = imv_batch.replaced_parameters
+    
+            if engine_events:
+                for fn in self.dispatch.before_cursor_execute:
+                    sub_stmt, sub_params = fn(
+                        self,
+                        cursor,
+                        sub_stmt,
+                        sub_params,
+                        context,
+                        True,
+                    )
+    
+            if self._echo:
+                self._log_info(sql_util._long_statement(sub_stmt))
+    
+                imv_stats = f""" {
+                            imv_batch.batchnum}/{imv_batch.total_batches} ({
+                            'ordered'
+                            if imv_batch.rows_sorted else 'unordered'
+                        }{
+                            '; batch not supported'
+                            if imv_batch.is_downgraded
+                            else ''
+                        })"""
+    
+                if imv_batch.batchnum == 1:
+                    stats += imv_stats
+                else:
+                    stats = f"insertmanyvalues{imv_stats}"
+    
+                if not self.engine.hide_parameters:
+                    self._log_info(
+                        "[%s] %r",
+                        stats,
+                        sql_util._repr_params(
+                            sub_params,
+                            batches=10,
+                            ismulti=False,
+                        ),
+                    )
+                else:
+                    self._log_info(
+                        "[%s] [SQL parameters hidden due to "
+                        "hide_parameters=True]",
+                        stats,
+                    )
+    
+            try:
+                for fn in do_execute_dispatch:
+                    if fn(
+                        cursor,
+                        sub_stmt,
+                        sub_params,
+                        context,
+                    ):
+                        break
+                else:
+>                   dialect.do_execute(
+                        cursor,
+                        sub_stmt,
+                        sub_params,
+                        context,
+                    )
+
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:2112: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\default.py:922: in do_execute
+    cursor.execute(statement, parameters)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py:146: in execute
+    self._adapt_connection._handle_exception(error)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py:298: in _handle_exception
+    raise error
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py:128: in execute
+    self.await_(_cursor.execute(operation, parameters))
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:125: in await_only
+    return current.driver.switch(awaitable)  # type: ignore[no-any-return]
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:185: in greenlet_spawn
+    value = await result
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\cursor.py:48: in execute
+    await self._execute(self._cursor.execute, sql, parameters)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\cursor.py:40: in _execute
+    return await self._conn._execute(fn, *args, **kwargs)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\core.py:133: in _execute
+    return await future
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <Connection(Thread-1, started daemon 35100)>
+
+    def run(self) -> None:
+        """
+        Execute function calls on a separate thread.
+    
+        :meta private:
+        """
+        while True:
+            # Continues running until all queue items are processed,
+            # even after connection is closed (so we can finalize all
+            # futures)
+            try:
+                future, function = self._tx.get(timeout=0.1)
+            except Empty:
+                if self._running:
+                    continue
+                break
+            try:
+                LOG.debug("executing %s", function)
+>               result = function()
+E               sqlite3.IntegrityError: UNIQUE constraint failed: pois.id
+
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\core.py:106: IntegrityError
+
+The above exception was the direct cause of the following exception:
+
+event_loop = <ProactorEventLoop running=False closed=False debug=False>
+request = <SubRequest 'seed_pois' for <Function test_get_all_wait_times_filtered_by_type>>
+kwargs = {'test_db_session': <sqlalchemy.ext.asyncio.session.AsyncSession object at 0x000001CDBC4F9650>}
+setup = <function _wrap_async_fixture.<locals>._async_fixture_wrapper.<locals>.setup at 0x000001CDBCF279C0>
+
+    @functools.wraps(fixture)
+    def _async_fixture_wrapper(
+        event_loop: asyncio.AbstractEventLoop, request: SubRequest, **kwargs: Any
+    ):
+        func = _perhaps_rebind_fixture_func(
+            fixture, request.instance, fixturedef.unittest
+        )
+    
+        async def setup():
+            res = await func(**_add_kwargs(func, kwargs, event_loop, request))
+            return res
+    
+>       return event_loop.run_until_complete(setup())
+
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\pytest_asyncio\plugin.py:326: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\asyncio\base_events.py:654: in run_until_complete
+    return future.result()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\pytest_asyncio\plugin.py:323: in setup
+    res = await func(**_add_kwargs(func, kwargs, event_loop, request))
+tests\conftest.py:126: in seed_pois
+    await test_db_session.commit()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\ext\asyncio\session.py:1011: in commit
+    await greenlet_spawn(self.sync_session.commit)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:192: in greenlet_spawn
+    result = context.switch(value)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:1969: in commit
+    trans.commit(_to_root=True)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\state_changes.py:139: in _go
+    ret_value = fn(self, *arg, **kw)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:1256: in commit
+    self._prepare_impl()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\state_changes.py:139: in _go
+    ret_value = fn(self, *arg, **kw)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:1231: in _prepare_impl
+    self.session.flush()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:4312: in flush
+    self._flush(objects)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:4447: in _flush
+    with util.safe_reraise():
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\langhelpers.py:146: in __exit__
+    raise exc_value.with_traceback(exc_tb)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:4408: in _flush
+    flush_context.execute()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\unitofwork.py:466: in execute
+    rec.execute(self)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\unitofwork.py:642: in execute
+    util.preloaded.orm_persistence.save_obj(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\persistence.py:93: in save_obj
+    _emit_insert_statements(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\persistence.py:1136: in _emit_insert_statements
+    result = connection.execute(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:1416: in execute
+    return meth(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\sql\elements.py:516: in _execute_on_connection
+    return connection._execute_clauseelement(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:1639: in _execute_clauseelement
+    ret = self._execute_context(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:1843: in _execute_context
+    return self._exec_insertmany_context(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:2120: in _exec_insertmany_context
+    self._handle_dbapi_exception(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:2343: in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:2112: in _exec_insertmany_context
+    dialect.do_execute(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\default.py:922: in do_execute
+    cursor.execute(statement, parameters)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py:146: in execute
+    self._adapt_connection._handle_exception(error)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py:298: in _handle_exception
+    raise error
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py:128: in execute
+    self.await_(_cursor.execute(operation, parameters))
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:125: in await_only
+    return current.driver.switch(awaitable)  # type: ignore[no-any-return]
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:185: in greenlet_spawn
+    value = await result
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\cursor.py:48: in execute
+    await self._execute(self._cursor.execute, sql, parameters)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\cursor.py:40: in _execute
+    return await self._conn._execute(fn, *args, **kwargs)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\core.py:133: in _execute
+    return await future
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <Connection(Thread-1, started daemon 35100)>
+
+    def run(self) -> None:
+        """
+        Execute function calls on a separate thread.
+    
+        :meta private:
+        """
+        while True:
+            # Continues running until all queue items are processed,
+            # even after connection is closed (so we can finalize all
+            # futures)
+            try:
+                future, function = self._tx.get(timeout=0.1)
+            except Empty:
+                if self._running:
+                    continue
+                break
+            try:
+                LOG.debug("executing %s", function)
+>               result = function()
+E               sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) UNIQUE constraint failed: pois.id
+E               [SQL: INSERT INTO pois (id, name, poi_type, num_servers, service_rate, updated_at) VALUES (?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?) RETURNING created_at, id]
+E               [parameters: ('WC-Norte-L0-1', 'Restrooms North Level 0 #1', 'restroom', 8, 0.5, None, 'WC-Sul-L1-1', 'Restrooms South Level 1 #1', 'restroom', 6, 0.5, None, 'Food-Sul-1', 'Food Court South #1', 'food', 4, 0.4, None)]
+E               (Background on this error at: https://sqlalche.me/e/20/gkpj)
+
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\core.py:106: IntegrityError
+____________ ERROR at setup of TestPOIEndpoints.test_get_all_pois _____________
+
+self = <sqlalchemy.engine.base.Connection object at 0x000001CDBCE7E110>
+dialect = <sqlalchemy.dialects.sqlite.aiosqlite.SQLiteDialect_aiosqlite object at 0x000001CDB8C1D3D0>
+context = <sqlalchemy.dialects.sqlite.aiosqlite.SQLiteExecutionContext_aiosqlite object at 0x000001CDBCE7E650>
+
+    def _exec_insertmany_context(
+        self,
+        dialect: Dialect,
+        context: ExecutionContext,
+    ) -> CursorResult[Any]:
+        """continue the _execute_context() method for an "insertmanyvalues"
+        operation, which will invoke DBAPI
+        cursor.execute() one or more times with individual log and
+        event hook calls.
+    
+        """
+    
+        if dialect.bind_typing is BindTyping.SETINPUTSIZES:
+            generic_setinputsizes = context._prepare_set_input_sizes()
+        else:
+            generic_setinputsizes = None
+    
+        cursor, str_statement, parameters = (
+            context.cursor,
+            context.statement,
+            context.parameters,
+        )
+    
+        effective_parameters = parameters
+    
+        engine_events = self._has_events or self.engine._has_events
+        if self.dialect._has_events:
+            do_execute_dispatch: Iterable[
+                Any
+            ] = self.dialect.dispatch.do_execute
+        else:
+            do_execute_dispatch = ()
+    
+        if self._echo:
+            stats = context._get_cache_stats() + " (insertmanyvalues)"
+    
+        for imv_batch in dialect._deliver_insertmanyvalues_batches(
+            cursor,
+            str_statement,
+            effective_parameters,
+            generic_setinputsizes,
+            context,
+        ):
+            if imv_batch.processed_setinputsizes:
+                try:
+                    dialect.do_set_input_sizes(
+                        context.cursor,
+                        imv_batch.processed_setinputsizes,
+                        context,
+                    )
+                except BaseException as e:
+                    self._handle_dbapi_exception(
+                        e,
+                        sql_util._long_statement(imv_batch.replaced_statement),
+                        imv_batch.replaced_parameters,
+                        None,
+                        context,
+                    )
+    
+            sub_stmt = imv_batch.replaced_statement
+            sub_params = imv_batch.replaced_parameters
+    
+            if engine_events:
+                for fn in self.dispatch.before_cursor_execute:
+                    sub_stmt, sub_params = fn(
+                        self,
+                        cursor,
+                        sub_stmt,
+                        sub_params,
+                        context,
+                        True,
+                    )
+    
+            if self._echo:
+                self._log_info(sql_util._long_statement(sub_stmt))
+    
+                imv_stats = f""" {
+                            imv_batch.batchnum}/{imv_batch.total_batches} ({
+                            'ordered'
+                            if imv_batch.rows_sorted else 'unordered'
+                        }{
+                            '; batch not supported'
+                            if imv_batch.is_downgraded
+                            else ''
+                        })"""
+    
+                if imv_batch.batchnum == 1:
+                    stats += imv_stats
+                else:
+                    stats = f"insertmanyvalues{imv_stats}"
+    
+                if not self.engine.hide_parameters:
+                    self._log_info(
+                        "[%s] %r",
+                        stats,
+                        sql_util._repr_params(
+                            sub_params,
+                            batches=10,
+                            ismulti=False,
+                        ),
+                    )
+                else:
+                    self._log_info(
+                        "[%s] [SQL parameters hidden due to "
+                        "hide_parameters=True]",
+                        stats,
+                    )
+    
+            try:
+                for fn in do_execute_dispatch:
+                    if fn(
+                        cursor,
+                        sub_stmt,
+                        sub_params,
+                        context,
+                    ):
+                        break
+                else:
+>                   dialect.do_execute(
+                        cursor,
+                        sub_stmt,
+                        sub_params,
+                        context,
+                    )
+
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:2112: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\default.py:922: in do_execute
+    cursor.execute(statement, parameters)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py:146: in execute
+    self._adapt_connection._handle_exception(error)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py:298: in _handle_exception
+    raise error
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py:128: in execute
+    self.await_(_cursor.execute(operation, parameters))
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:125: in await_only
+    return current.driver.switch(awaitable)  # type: ignore[no-any-return]
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:185: in greenlet_spawn
+    value = await result
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\cursor.py:48: in execute
+    await self._execute(self._cursor.execute, sql, parameters)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\cursor.py:40: in _execute
+    return await self._conn._execute(fn, *args, **kwargs)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\core.py:133: in _execute
+    return await future
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <Connection(Thread-1, started daemon 35100)>
+
+    def run(self) -> None:
+        """
+        Execute function calls on a separate thread.
+    
+        :meta private:
+        """
+        while True:
+            # Continues running until all queue items are processed,
+            # even after connection is closed (so we can finalize all
+            # futures)
+            try:
+                future, function = self._tx.get(timeout=0.1)
+            except Empty:
+                if self._running:
+                    continue
+                break
+            try:
+                LOG.debug("executing %s", function)
+>               result = function()
+E               sqlite3.IntegrityError: UNIQUE constraint failed: pois.id
+
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\core.py:106: IntegrityError
+
+The above exception was the direct cause of the following exception:
+
+event_loop = <ProactorEventLoop running=False closed=False debug=False>
+request = <SubRequest 'seed_pois' for <Function test_get_all_pois>>
+kwargs = {'test_db_session': <sqlalchemy.ext.asyncio.session.AsyncSession object at 0x000001CDBCE7CF90>}
+setup = <function _wrap_async_fixture.<locals>._async_fixture_wrapper.<locals>.setup at 0x000001CDBC4BB6A0>
+
+    @functools.wraps(fixture)
+    def _async_fixture_wrapper(
+        event_loop: asyncio.AbstractEventLoop, request: SubRequest, **kwargs: Any
+    ):
+        func = _perhaps_rebind_fixture_func(
+            fixture, request.instance, fixturedef.unittest
+        )
+    
+        async def setup():
+            res = await func(**_add_kwargs(func, kwargs, event_loop, request))
+            return res
+    
+>       return event_loop.run_until_complete(setup())
+
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\pytest_asyncio\plugin.py:326: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\asyncio\base_events.py:654: in run_until_complete
+    return future.result()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\pytest_asyncio\plugin.py:323: in setup
+    res = await func(**_add_kwargs(func, kwargs, event_loop, request))
+tests\conftest.py:126: in seed_pois
+    await test_db_session.commit()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\ext\asyncio\session.py:1011: in commit
+    await greenlet_spawn(self.sync_session.commit)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:192: in greenlet_spawn
+    result = context.switch(value)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:1969: in commit
+    trans.commit(_to_root=True)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\state_changes.py:139: in _go
+    ret_value = fn(self, *arg, **kw)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:1256: in commit
+    self._prepare_impl()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\state_changes.py:139: in _go
+    ret_value = fn(self, *arg, **kw)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:1231: in _prepare_impl
+    self.session.flush()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:4312: in flush
+    self._flush(objects)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:4447: in _flush
+    with util.safe_reraise():
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\langhelpers.py:146: in __exit__
+    raise exc_value.with_traceback(exc_tb)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:4408: in _flush
+    flush_context.execute()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\unitofwork.py:466: in execute
+    rec.execute(self)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\unitofwork.py:642: in execute
+    util.preloaded.orm_persistence.save_obj(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\persistence.py:93: in save_obj
+    _emit_insert_statements(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\persistence.py:1136: in _emit_insert_statements
+    result = connection.execute(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:1416: in execute
+    return meth(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\sql\elements.py:516: in _execute_on_connection
+    return connection._execute_clauseelement(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:1639: in _execute_clauseelement
+    ret = self._execute_context(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:1843: in _execute_context
+    return self._exec_insertmany_context(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:2120: in _exec_insertmany_context
+    self._handle_dbapi_exception(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:2343: in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:2112: in _exec_insertmany_context
+    dialect.do_execute(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\default.py:922: in do_execute
+    cursor.execute(statement, parameters)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py:146: in execute
+    self._adapt_connection._handle_exception(error)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py:298: in _handle_exception
+    raise error
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py:128: in execute
+    self.await_(_cursor.execute(operation, parameters))
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:125: in await_only
+    return current.driver.switch(awaitable)  # type: ignore[no-any-return]
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:185: in greenlet_spawn
+    value = await result
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\cursor.py:48: in execute
+    await self._execute(self._cursor.execute, sql, parameters)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\cursor.py:40: in _execute
+    return await self._conn._execute(fn, *args, **kwargs)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\core.py:133: in _execute
+    return await future
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <Connection(Thread-1, started daemon 35100)>
+
+    def run(self) -> None:
+        """
+        Execute function calls on a separate thread.
+    
+        :meta private:
+        """
+        while True:
+            # Continues running until all queue items are processed,
+            # even after connection is closed (so we can finalize all
+            # futures)
+            try:
+                future, function = self._tx.get(timeout=0.1)
+            except Empty:
+                if self._running:
+                    continue
+                break
+            try:
+                LOG.debug("executing %s", function)
+>               result = function()
+E               sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) UNIQUE constraint failed: pois.id
+E               [SQL: INSERT INTO pois (id, name, poi_type, num_servers, service_rate, updated_at) VALUES (?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?) RETURNING created_at, id]
+E               [parameters: ('WC-Norte-L0-1', 'Restrooms North Level 0 #1', 'restroom', 8, 0.5, None, 'WC-Sul-L1-1', 'Restrooms South Level 1 #1', 'restroom', 6, 0.5, None, 'Food-Sul-1', 'Food Court South #1', 'food', 4, 0.4, None)]
+E               (Background on this error at: https://sqlalche.me/e/20/gkpj)
+
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\core.py:106: IntegrityError
+______ ERROR at setup of TestPOIEndpoints.test_get_pois_filtered_by_type ______
+
+self = <sqlalchemy.engine.base.Connection object at 0x000001CDBD0ED510>
+dialect = <sqlalchemy.dialects.sqlite.aiosqlite.SQLiteDialect_aiosqlite object at 0x000001CDB8C1D3D0>
+context = <sqlalchemy.dialects.sqlite.aiosqlite.SQLiteExecutionContext_aiosqlite object at 0x000001CDBD0EED90>
+
+    def _exec_insertmany_context(
+        self,
+        dialect: Dialect,
+        context: ExecutionContext,
+    ) -> CursorResult[Any]:
+        """continue the _execute_context() method for an "insertmanyvalues"
+        operation, which will invoke DBAPI
+        cursor.execute() one or more times with individual log and
+        event hook calls.
+    
+        """
+    
+        if dialect.bind_typing is BindTyping.SETINPUTSIZES:
+            generic_setinputsizes = context._prepare_set_input_sizes()
+        else:
+            generic_setinputsizes = None
+    
+        cursor, str_statement, parameters = (
+            context.cursor,
+            context.statement,
+            context.parameters,
+        )
+    
+        effective_parameters = parameters
+    
+        engine_events = self._has_events or self.engine._has_events
+        if self.dialect._has_events:
+            do_execute_dispatch: Iterable[
+                Any
+            ] = self.dialect.dispatch.do_execute
+        else:
+            do_execute_dispatch = ()
+    
+        if self._echo:
+            stats = context._get_cache_stats() + " (insertmanyvalues)"
+    
+        for imv_batch in dialect._deliver_insertmanyvalues_batches(
+            cursor,
+            str_statement,
+            effective_parameters,
+            generic_setinputsizes,
+            context,
+        ):
+            if imv_batch.processed_setinputsizes:
+                try:
+                    dialect.do_set_input_sizes(
+                        context.cursor,
+                        imv_batch.processed_setinputsizes,
+                        context,
+                    )
+                except BaseException as e:
+                    self._handle_dbapi_exception(
+                        e,
+                        sql_util._long_statement(imv_batch.replaced_statement),
+                        imv_batch.replaced_parameters,
+                        None,
+                        context,
+                    )
+    
+            sub_stmt = imv_batch.replaced_statement
+            sub_params = imv_batch.replaced_parameters
+    
+            if engine_events:
+                for fn in self.dispatch.before_cursor_execute:
+                    sub_stmt, sub_params = fn(
+                        self,
+                        cursor,
+                        sub_stmt,
+                        sub_params,
+                        context,
+                        True,
+                    )
+    
+            if self._echo:
+                self._log_info(sql_util._long_statement(sub_stmt))
+    
+                imv_stats = f""" {
+                            imv_batch.batchnum}/{imv_batch.total_batches} ({
+                            'ordered'
+                            if imv_batch.rows_sorted else 'unordered'
+                        }{
+                            '; batch not supported'
+                            if imv_batch.is_downgraded
+                            else ''
+                        })"""
+    
+                if imv_batch.batchnum == 1:
+                    stats += imv_stats
+                else:
+                    stats = f"insertmanyvalues{imv_stats}"
+    
+                if not self.engine.hide_parameters:
+                    self._log_info(
+                        "[%s] %r",
+                        stats,
+                        sql_util._repr_params(
+                            sub_params,
+                            batches=10,
+                            ismulti=False,
+                        ),
+                    )
+                else:
+                    self._log_info(
+                        "[%s] [SQL parameters hidden due to "
+                        "hide_parameters=True]",
+                        stats,
+                    )
+    
+            try:
+                for fn in do_execute_dispatch:
+                    if fn(
+                        cursor,
+                        sub_stmt,
+                        sub_params,
+                        context,
+                    ):
+                        break
+                else:
+>                   dialect.do_execute(
+                        cursor,
+                        sub_stmt,
+                        sub_params,
+                        context,
+                    )
+
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:2112: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\default.py:922: in do_execute
+    cursor.execute(statement, parameters)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py:146: in execute
+    self._adapt_connection._handle_exception(error)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py:298: in _handle_exception
+    raise error
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py:128: in execute
+    self.await_(_cursor.execute(operation, parameters))
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:125: in await_only
+    return current.driver.switch(awaitable)  # type: ignore[no-any-return]
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:185: in greenlet_spawn
+    value = await result
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\cursor.py:48: in execute
+    await self._execute(self._cursor.execute, sql, parameters)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\cursor.py:40: in _execute
+    return await self._conn._execute(fn, *args, **kwargs)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\core.py:133: in _execute
+    return await future
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <Connection(Thread-1, started daemon 35100)>
+
+    def run(self) -> None:
+        """
+        Execute function calls on a separate thread.
+    
+        :meta private:
+        """
+        while True:
+            # Continues running until all queue items are processed,
+            # even after connection is closed (so we can finalize all
+            # futures)
+            try:
+                future, function = self._tx.get(timeout=0.1)
+            except Empty:
+                if self._running:
+                    continue
+                break
+            try:
+                LOG.debug("executing %s", function)
+>               result = function()
+E               sqlite3.IntegrityError: UNIQUE constraint failed: pois.id
+
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\core.py:106: IntegrityError
+
+The above exception was the direct cause of the following exception:
+
+event_loop = <ProactorEventLoop running=False closed=False debug=False>
+request = <SubRequest 'seed_pois' for <Function test_get_pois_filtered_by_type>>
+kwargs = {'test_db_session': <sqlalchemy.ext.asyncio.session.AsyncSession object at 0x000001CDBD0ECC10>}
+setup = <function _wrap_async_fixture.<locals>._async_fixture_wrapper.<locals>.setup at 0x000001CDBC4BA020>
+
+    @functools.wraps(fixture)
+    def _async_fixture_wrapper(
+        event_loop: asyncio.AbstractEventLoop, request: SubRequest, **kwargs: Any
+    ):
+        func = _perhaps_rebind_fixture_func(
+            fixture, request.instance, fixturedef.unittest
+        )
+    
+        async def setup():
+            res = await func(**_add_kwargs(func, kwargs, event_loop, request))
+            return res
+    
+>       return event_loop.run_until_complete(setup())
+
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\pytest_asyncio\plugin.py:326: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\asyncio\base_events.py:654: in run_until_complete
+    return future.result()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\pytest_asyncio\plugin.py:323: in setup
+    res = await func(**_add_kwargs(func, kwargs, event_loop, request))
+tests\conftest.py:126: in seed_pois
+    await test_db_session.commit()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\ext\asyncio\session.py:1011: in commit
+    await greenlet_spawn(self.sync_session.commit)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:192: in greenlet_spawn
+    result = context.switch(value)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:1969: in commit
+    trans.commit(_to_root=True)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\state_changes.py:139: in _go
+    ret_value = fn(self, *arg, **kw)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:1256: in commit
+    self._prepare_impl()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\state_changes.py:139: in _go
+    ret_value = fn(self, *arg, **kw)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:1231: in _prepare_impl
+    self.session.flush()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:4312: in flush
+    self._flush(objects)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:4447: in _flush
+    with util.safe_reraise():
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\langhelpers.py:146: in __exit__
+    raise exc_value.with_traceback(exc_tb)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:4408: in _flush
+    flush_context.execute()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\unitofwork.py:466: in execute
+    rec.execute(self)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\unitofwork.py:642: in execute
+    util.preloaded.orm_persistence.save_obj(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\persistence.py:93: in save_obj
+    _emit_insert_statements(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\persistence.py:1136: in _emit_insert_statements
+    result = connection.execute(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:1416: in execute
+    return meth(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\sql\elements.py:516: in _execute_on_connection
+    return connection._execute_clauseelement(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:1639: in _execute_clauseelement
+    ret = self._execute_context(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:1843: in _execute_context
+    return self._exec_insertmany_context(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:2120: in _exec_insertmany_context
+    self._handle_dbapi_exception(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:2343: in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:2112: in _exec_insertmany_context
+    dialect.do_execute(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\default.py:922: in do_execute
+    cursor.execute(statement, parameters)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py:146: in execute
+    self._adapt_connection._handle_exception(error)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py:298: in _handle_exception
+    raise error
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py:128: in execute
+    self.await_(_cursor.execute(operation, parameters))
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:125: in await_only
+    return current.driver.switch(awaitable)  # type: ignore[no-any-return]
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:185: in greenlet_spawn
+    value = await result
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\cursor.py:48: in execute
+    await self._execute(self._cursor.execute, sql, parameters)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\cursor.py:40: in _execute
+    return await self._conn._execute(fn, *args, **kwargs)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\core.py:133: in _execute
+    return await future
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <Connection(Thread-1, started daemon 35100)>
+
+    def run(self) -> None:
+        """
+        Execute function calls on a separate thread.
+    
+        :meta private:
+        """
+        while True:
+            # Continues running until all queue items are processed,
+            # even after connection is closed (so we can finalize all
+            # futures)
+            try:
+                future, function = self._tx.get(timeout=0.1)
+            except Empty:
+                if self._running:
+                    continue
+                break
+            try:
+                LOG.debug("executing %s", function)
+>               result = function()
+E               sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) UNIQUE constraint failed: pois.id
+E               [SQL: INSERT INTO pois (id, name, poi_type, num_servers, service_rate, updated_at) VALUES (?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?) RETURNING created_at, id]
+E               [parameters: ('WC-Norte-L0-1', 'Restrooms North Level 0 #1', 'restroom', 8, 0.5, None, 'WC-Sul-L1-1', 'Restrooms South Level 1 #1', 'restroom', 6, 0.5, None, 'Food-Sul-1', 'Food Court South #1', 'food', 4, 0.4, None)]
+E               (Background on this error at: https://sqlalche.me/e/20/gkpj)
+
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\core.py:106: IntegrityError
+________ ERROR at setup of TestPOIEndpoints.test_get_poi_by_id_success ________
+
+self = <sqlalchemy.engine.base.Connection object at 0x000001CDBC510250>
+dialect = <sqlalchemy.dialects.sqlite.aiosqlite.SQLiteDialect_aiosqlite object at 0x000001CDB8C1D3D0>
+context = <sqlalchemy.dialects.sqlite.aiosqlite.SQLiteExecutionContext_aiosqlite object at 0x000001CDBC511710>
+
+    def _exec_insertmany_context(
+        self,
+        dialect: Dialect,
+        context: ExecutionContext,
+    ) -> CursorResult[Any]:
+        """continue the _execute_context() method for an "insertmanyvalues"
+        operation, which will invoke DBAPI
+        cursor.execute() one or more times with individual log and
+        event hook calls.
+    
+        """
+    
+        if dialect.bind_typing is BindTyping.SETINPUTSIZES:
+            generic_setinputsizes = context._prepare_set_input_sizes()
+        else:
+            generic_setinputsizes = None
+    
+        cursor, str_statement, parameters = (
+            context.cursor,
+            context.statement,
+            context.parameters,
+        )
+    
+        effective_parameters = parameters
+    
+        engine_events = self._has_events or self.engine._has_events
+        if self.dialect._has_events:
+            do_execute_dispatch: Iterable[
+                Any
+            ] = self.dialect.dispatch.do_execute
+        else:
+            do_execute_dispatch = ()
+    
+        if self._echo:
+            stats = context._get_cache_stats() + " (insertmanyvalues)"
+    
+        for imv_batch in dialect._deliver_insertmanyvalues_batches(
+            cursor,
+            str_statement,
+            effective_parameters,
+            generic_setinputsizes,
+            context,
+        ):
+            if imv_batch.processed_setinputsizes:
+                try:
+                    dialect.do_set_input_sizes(
+                        context.cursor,
+                        imv_batch.processed_setinputsizes,
+                        context,
+                    )
+                except BaseException as e:
+                    self._handle_dbapi_exception(
+                        e,
+                        sql_util._long_statement(imv_batch.replaced_statement),
+                        imv_batch.replaced_parameters,
+                        None,
+                        context,
+                    )
+    
+            sub_stmt = imv_batch.replaced_statement
+            sub_params = imv_batch.replaced_parameters
+    
+            if engine_events:
+                for fn in self.dispatch.before_cursor_execute:
+                    sub_stmt, sub_params = fn(
+                        self,
+                        cursor,
+                        sub_stmt,
+                        sub_params,
+                        context,
+                        True,
+                    )
+    
+            if self._echo:
+                self._log_info(sql_util._long_statement(sub_stmt))
+    
+                imv_stats = f""" {
+                            imv_batch.batchnum}/{imv_batch.total_batches} ({
+                            'ordered'
+                            if imv_batch.rows_sorted else 'unordered'
+                        }{
+                            '; batch not supported'
+                            if imv_batch.is_downgraded
+                            else ''
+                        })"""
+    
+                if imv_batch.batchnum == 1:
+                    stats += imv_stats
+                else:
+                    stats = f"insertmanyvalues{imv_stats}"
+    
+                if not self.engine.hide_parameters:
+                    self._log_info(
+                        "[%s] %r",
+                        stats,
+                        sql_util._repr_params(
+                            sub_params,
+                            batches=10,
+                            ismulti=False,
+                        ),
+                    )
+                else:
+                    self._log_info(
+                        "[%s] [SQL parameters hidden due to "
+                        "hide_parameters=True]",
+                        stats,
+                    )
+    
+            try:
+                for fn in do_execute_dispatch:
+                    if fn(
+                        cursor,
+                        sub_stmt,
+                        sub_params,
+                        context,
+                    ):
+                        break
+                else:
+>                   dialect.do_execute(
+                        cursor,
+                        sub_stmt,
+                        sub_params,
+                        context,
+                    )
+
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:2112: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\default.py:922: in do_execute
+    cursor.execute(statement, parameters)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py:146: in execute
+    self._adapt_connection._handle_exception(error)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py:298: in _handle_exception
+    raise error
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py:128: in execute
+    self.await_(_cursor.execute(operation, parameters))
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:125: in await_only
+    return current.driver.switch(awaitable)  # type: ignore[no-any-return]
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:185: in greenlet_spawn
+    value = await result
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\cursor.py:48: in execute
+    await self._execute(self._cursor.execute, sql, parameters)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\cursor.py:40: in _execute
+    return await self._conn._execute(fn, *args, **kwargs)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\core.py:133: in _execute
+    return await future
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <Connection(Thread-1, started daemon 35100)>
+
+    def run(self) -> None:
+        """
+        Execute function calls on a separate thread.
+    
+        :meta private:
+        """
+        while True:
+            # Continues running until all queue items are processed,
+            # even after connection is closed (so we can finalize all
+            # futures)
+            try:
+                future, function = self._tx.get(timeout=0.1)
+            except Empty:
+                if self._running:
+                    continue
+                break
+            try:
+                LOG.debug("executing %s", function)
+>               result = function()
+E               sqlite3.IntegrityError: UNIQUE constraint failed: pois.id
+
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\core.py:106: IntegrityError
+
+The above exception was the direct cause of the following exception:
+
+event_loop = <ProactorEventLoop running=False closed=False debug=False>
+request = <SubRequest 'seed_pois' for <Function test_get_poi_by_id_success>>
+kwargs = {'test_db_session': <sqlalchemy.ext.asyncio.session.AsyncSession object at 0x000001CDBC513510>}
+setup = <function _wrap_async_fixture.<locals>._async_fixture_wrapper.<locals>.setup at 0x000001CDBC4BBBA0>
+
+    @functools.wraps(fixture)
+    def _async_fixture_wrapper(
+        event_loop: asyncio.AbstractEventLoop, request: SubRequest, **kwargs: Any
+    ):
+        func = _perhaps_rebind_fixture_func(
+            fixture, request.instance, fixturedef.unittest
+        )
+    
+        async def setup():
+            res = await func(**_add_kwargs(func, kwargs, event_loop, request))
+            return res
+    
+>       return event_loop.run_until_complete(setup())
+
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\pytest_asyncio\plugin.py:326: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\asyncio\base_events.py:654: in run_until_complete
+    return future.result()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\pytest_asyncio\plugin.py:323: in setup
+    res = await func(**_add_kwargs(func, kwargs, event_loop, request))
+tests\conftest.py:126: in seed_pois
+    await test_db_session.commit()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\ext\asyncio\session.py:1011: in commit
+    await greenlet_spawn(self.sync_session.commit)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:192: in greenlet_spawn
+    result = context.switch(value)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:1969: in commit
+    trans.commit(_to_root=True)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\state_changes.py:139: in _go
+    ret_value = fn(self, *arg, **kw)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:1256: in commit
+    self._prepare_impl()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\state_changes.py:139: in _go
+    ret_value = fn(self, *arg, **kw)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:1231: in _prepare_impl
+    self.session.flush()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:4312: in flush
+    self._flush(objects)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:4447: in _flush
+    with util.safe_reraise():
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\langhelpers.py:146: in __exit__
+    raise exc_value.with_traceback(exc_tb)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:4408: in _flush
+    flush_context.execute()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\unitofwork.py:466: in execute
+    rec.execute(self)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\unitofwork.py:642: in execute
+    util.preloaded.orm_persistence.save_obj(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\persistence.py:93: in save_obj
+    _emit_insert_statements(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\persistence.py:1136: in _emit_insert_statements
+    result = connection.execute(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:1416: in execute
+    return meth(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\sql\elements.py:516: in _execute_on_connection
+    return connection._execute_clauseelement(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:1639: in _execute_clauseelement
+    ret = self._execute_context(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:1843: in _execute_context
+    return self._exec_insertmany_context(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:2120: in _exec_insertmany_context
+    self._handle_dbapi_exception(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:2343: in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:2112: in _exec_insertmany_context
+    dialect.do_execute(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\default.py:922: in do_execute
+    cursor.execute(statement, parameters)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py:146: in execute
+    self._adapt_connection._handle_exception(error)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py:298: in _handle_exception
+    raise error
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py:128: in execute
+    self.await_(_cursor.execute(operation, parameters))
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:125: in await_only
+    return current.driver.switch(awaitable)  # type: ignore[no-any-return]
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:185: in greenlet_spawn
+    value = await result
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\cursor.py:48: in execute
+    await self._execute(self._cursor.execute, sql, parameters)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\cursor.py:40: in _execute
+    return await self._conn._execute(fn, *args, **kwargs)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\core.py:133: in _execute
+    return await future
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <Connection(Thread-1, started daemon 35100)>
+
+    def run(self) -> None:
+        """
+        Execute function calls on a separate thread.
+    
+        :meta private:
+        """
+        while True:
+            # Continues running until all queue items are processed,
+            # even after connection is closed (so we can finalize all
+            # futures)
+            try:
+                future, function = self._tx.get(timeout=0.1)
+            except Empty:
+                if self._running:
+                    continue
+                break
+            try:
+                LOG.debug("executing %s", function)
+>               result = function()
+E               sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) UNIQUE constraint failed: pois.id
+E               [SQL: INSERT INTO pois (id, name, poi_type, num_servers, service_rate, updated_at) VALUES (?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?) RETURNING created_at, id]
+E               [parameters: ('WC-Norte-L0-1', 'Restrooms North Level 0 #1', 'restroom', 8, 0.5, None, 'WC-Sul-L1-1', 'Restrooms South Level 1 #1', 'restroom', 6, 0.5, None, 'Food-Sul-1', 'Food Court South #1', 'food', 4, 0.4, None)]
+E               (Background on this error at: https://sqlalche.me/e/20/gkpj)
+
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\core.py:106: IntegrityError
+_______ ERROR at setup of TestDebugEndpoints.test_get_queue_state_debug _______
+
+self = <sqlalchemy.engine.base.Connection object at 0x000001CDBD4D2510>
+dialect = <sqlalchemy.dialects.sqlite.aiosqlite.SQLiteDialect_aiosqlite object at 0x000001CDB8C1D3D0>
+context = <sqlalchemy.dialects.sqlite.aiosqlite.SQLiteExecutionContext_aiosqlite object at 0x000001CDBD4D2190>
+statement = <sqlalchemy.dialects.sqlite.base.SQLiteCompiler object at 0x000001CDBA7F0CD0>
+parameters = [('WC-Norte-L0-1', 2.5, 5.2, 4.0, 6.5, 50, ...), ('WC-Sul-L1-1', 1.8, 3.1, 2.5, 3.8, 40, ...), ('Food-Sul-1', 3.2, 8.7, 7.0, 10.5, 30, ...)]
+
+    def _exec_single_context(
+        self,
+        dialect: Dialect,
+        context: ExecutionContext,
+        statement: Union[str, Compiled],
+        parameters: Optional[_AnyMultiExecuteParams],
+    ) -> CursorResult[Any]:
+        """continue the _execute_context() method for a single DBAPI
+        cursor.execute() or cursor.executemany() call.
+    
+        """
+        if dialect.bind_typing is BindTyping.SETINPUTSIZES:
+            generic_setinputsizes = context._prepare_set_input_sizes()
+    
+            if generic_setinputsizes:
+                try:
+                    dialect.do_set_input_sizes(
+                        context.cursor, generic_setinputsizes, context
+                    )
+                except BaseException as e:
+                    self._handle_dbapi_exception(
+                        e, str(statement), parameters, None, context
+                    )
+    
+        cursor, str_statement, parameters = (
+            context.cursor,
+            context.statement,
+            context.parameters,
+        )
+    
+        effective_parameters: Optional[_AnyExecuteParams]
+    
+        if not context.executemany:
+            effective_parameters = parameters[0]
+        else:
+            effective_parameters = parameters
+    
+        if self._has_events or self.engine._has_events:
+            for fn in self.dispatch.before_cursor_execute:
+                str_statement, effective_parameters = fn(
+                    self,
+                    cursor,
+                    str_statement,
+                    effective_parameters,
+                    context,
+                    context.executemany,
+                )
+    
+        if self._echo:
+            self._log_info(str_statement)
+    
+            stats = context._get_cache_stats()
+    
+            if not self.engine.hide_parameters:
+                self._log_info(
+                    "[%s] %r",
+                    stats,
+                    sql_util._repr_params(
+                        effective_parameters,
+                        batches=10,
+                        ismulti=context.executemany,
+                    ),
+                )
+            else:
+                self._log_info(
+                    "[%s] [SQL parameters hidden due to hide_parameters=True]",
+                    stats,
+                )
+    
+        evt_handled: bool = False
+        try:
+            if context.execute_style is ExecuteStyle.EXECUTEMANY:
+                effective_parameters = cast(
+                    "_CoreMultiExecuteParams", effective_parameters
+                )
+                if self.dialect._has_events:
+                    for fn in self.dialect.dispatch.do_executemany:
+                        if fn(
+                            cursor,
+                            str_statement,
+                            effective_parameters,
+                            context,
+                        ):
+                            evt_handled = True
+                            break
+                if not evt_handled:
+>                   self.dialect.do_executemany(
+                        cursor,
+                        str_statement,
+                        effective_parameters,
+                        context,
+
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:1938: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\default.py:919: in do_executemany
+    cursor.executemany(statement, parameters)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py:157: in executemany
+    self._adapt_connection._handle_exception(error)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py:298: in _handle_exception
+    raise error
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py:151: in executemany
+    self.await_(_cursor.executemany(operation, seq_of_parameters))
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:125: in await_only
+    return current.driver.switch(awaitable)  # type: ignore[no-any-return]
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:185: in greenlet_spawn
+    value = await result
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\cursor.py:55: in executemany
+    await self._execute(self._cursor.executemany, sql, parameters)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\cursor.py:40: in _execute
+    return await self._conn._execute(fn, *args, **kwargs)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\core.py:133: in _execute
+    return await future
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <Connection(Thread-1, started daemon 35100)>
+
+    def run(self) -> None:
+        """
+        Execute function calls on a separate thread.
+    
+        :meta private:
+        """
+        while True:
+            # Continues running until all queue items are processed,
+            # even after connection is closed (so we can finalize all
+            # futures)
+            try:
+                future, function = self._tx.get(timeout=0.1)
+            except Empty:
+                if self._running:
+                    continue
+                break
+            try:
+                LOG.debug("executing %s", function)
+>               result = function()
+E               sqlite3.IntegrityError: UNIQUE constraint failed: queue_states.poi_id
+
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\core.py:106: IntegrityError
+
+The above exception was the direct cause of the following exception:
+
+event_loop = <ProactorEventLoop running=False closed=False debug=False>
+request = <SubRequest 'seed_queue_states' for <Function test_get_queue_state_debug>>
+kwargs = {'test_db_session': <sqlalchemy.ext.asyncio.session.AsyncSession object at 0x000001CDBD4D0910>}
+setup = <function _wrap_async_fixture.<locals>._async_fixture_wrapper.<locals>.setup at 0x000001CDBD896660>
+
+    @functools.wraps(fixture)
+    def _async_fixture_wrapper(
+        event_loop: asyncio.AbstractEventLoop, request: SubRequest, **kwargs: Any
+    ):
+        func = _perhaps_rebind_fixture_func(
+            fixture, request.instance, fixturedef.unittest
+        )
+    
+        async def setup():
+            res = await func(**_add_kwargs(func, kwargs, event_loop, request))
+            return res
+    
+>       return event_loop.run_until_complete(setup())
+
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\pytest_asyncio\plugin.py:326: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\asyncio\base_events.py:654: in run_until_complete
+    return future.result()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\pytest_asyncio\plugin.py:323: in setup
+    res = await func(**_add_kwargs(func, kwargs, event_loop, request))
+tests\conftest.py:175: in seed_queue_states
+    await test_db_session.commit()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\ext\asyncio\session.py:1011: in commit
+    await greenlet_spawn(self.sync_session.commit)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:192: in greenlet_spawn
+    result = context.switch(value)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:1969: in commit
+    trans.commit(_to_root=True)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\state_changes.py:139: in _go
+    ret_value = fn(self, *arg, **kw)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:1256: in commit
+    self._prepare_impl()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\state_changes.py:139: in _go
+    ret_value = fn(self, *arg, **kw)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:1231: in _prepare_impl
+    self.session.flush()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:4312: in flush
+    self._flush(objects)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:4447: in _flush
+    with util.safe_reraise():
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\langhelpers.py:146: in __exit__
+    raise exc_value.with_traceback(exc_tb)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:4408: in _flush
+    flush_context.execute()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\unitofwork.py:466: in execute
+    rec.execute(self)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\unitofwork.py:642: in execute
+    util.preloaded.orm_persistence.save_obj(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\persistence.py:93: in save_obj
+    _emit_insert_statements(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\persistence.py:1043: in _emit_insert_statements
+    result = connection.execute(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:1416: in execute
+    return meth(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\sql\elements.py:516: in _execute_on_connection
+    return connection._execute_clauseelement(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:1639: in _execute_clauseelement
+    ret = self._execute_context(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:1848: in _execute_context
+    return self._exec_single_context(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:1988: in _exec_single_context
+    self._handle_dbapi_exception(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:2343: in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:1938: in _exec_single_context
+    self.dialect.do_executemany(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\default.py:919: in do_executemany
+    cursor.executemany(statement, parameters)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py:157: in executemany
+    self._adapt_connection._handle_exception(error)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py:298: in _handle_exception
+    raise error
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py:151: in executemany
+    self.await_(_cursor.executemany(operation, seq_of_parameters))
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:125: in await_only
+    return current.driver.switch(awaitable)  # type: ignore[no-any-return]
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:185: in greenlet_spawn
+    value = await result
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\cursor.py:55: in executemany
+    await self._execute(self._cursor.executemany, sql, parameters)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\cursor.py:40: in _execute
+    return await self._conn._execute(fn, *args, **kwargs)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\core.py:133: in _execute
+    return await future
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <Connection(Thread-1, started daemon 35100)>
+
+    def run(self) -> None:
+        """
+        Execute function calls on a separate thread.
+    
+        :meta private:
+        """
+        while True:
+            # Continues running until all queue items are processed,
+            # even after connection is closed (so we can finalize all
+            # futures)
+            try:
+                future, function = self._tx.get(timeout=0.1)
+            except Empty:
+                if self._running:
+                    continue
+                break
+            try:
+                LOG.debug("executing %s", function)
+>               result = function()
+E               sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) UNIQUE constraint failed: queue_states.poi_id
+E               [SQL: INSERT INTO queue_states (poi_id, arrival_rate, current_wait_minutes, confidence_lower, confidence_upper, sample_count, status, last_updated) VALUES (?, ?, ?, ?, ?, ?, ?, ?)]
+E               [parameters: [('WC-Norte-L0-1', 2.5, 5.2, 4.0, 6.5, 50, 'medium', '2025-12-15 00:13:25.493361'), ('WC-Sul-L1-1', 1.8, 3.1, 2.5, 3.8, 40, 'low', '2025-12-15 00:13:25.493361'), ('Food-Sul-1', 3.2, 8.7, 7.0, 10.5, 30, 'high', '2025-12-15 00:13:25.493361')]]
+E               (Background on this error at: https://sqlalche.me/e/20/gkpj)
+
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\core.py:106: IntegrityError
+_____ ERROR at setup of TestResponseModels.test_wait_time_response_model ______
+
+self = <sqlalchemy.engine.base.Connection object at 0x000001CDBC7DCB10>
+dialect = <sqlalchemy.dialects.sqlite.aiosqlite.SQLiteDialect_aiosqlite object at 0x000001CDB8C1D3D0>
+context = <sqlalchemy.dialects.sqlite.aiosqlite.SQLiteExecutionContext_aiosqlite object at 0x000001CDBC7DD650>
+
+    def _exec_insertmany_context(
+        self,
+        dialect: Dialect,
+        context: ExecutionContext,
+    ) -> CursorResult[Any]:
+        """continue the _execute_context() method for an "insertmanyvalues"
+        operation, which will invoke DBAPI
+        cursor.execute() one or more times with individual log and
+        event hook calls.
+    
+        """
+    
+        if dialect.bind_typing is BindTyping.SETINPUTSIZES:
+            generic_setinputsizes = context._prepare_set_input_sizes()
+        else:
+            generic_setinputsizes = None
+    
+        cursor, str_statement, parameters = (
+            context.cursor,
+            context.statement,
+            context.parameters,
+        )
+    
+        effective_parameters = parameters
+    
+        engine_events = self._has_events or self.engine._has_events
+        if self.dialect._has_events:
+            do_execute_dispatch: Iterable[
+                Any
+            ] = self.dialect.dispatch.do_execute
+        else:
+            do_execute_dispatch = ()
+    
+        if self._echo:
+            stats = context._get_cache_stats() + " (insertmanyvalues)"
+    
+        for imv_batch in dialect._deliver_insertmanyvalues_batches(
+            cursor,
+            str_statement,
+            effective_parameters,
+            generic_setinputsizes,
+            context,
+        ):
+            if imv_batch.processed_setinputsizes:
+                try:
+                    dialect.do_set_input_sizes(
+                        context.cursor,
+                        imv_batch.processed_setinputsizes,
+                        context,
+                    )
+                except BaseException as e:
+                    self._handle_dbapi_exception(
+                        e,
+                        sql_util._long_statement(imv_batch.replaced_statement),
+                        imv_batch.replaced_parameters,
+                        None,
+                        context,
+                    )
+    
+            sub_stmt = imv_batch.replaced_statement
+            sub_params = imv_batch.replaced_parameters
+    
+            if engine_events:
+                for fn in self.dispatch.before_cursor_execute:
+                    sub_stmt, sub_params = fn(
+                        self,
+                        cursor,
+                        sub_stmt,
+                        sub_params,
+                        context,
+                        True,
+                    )
+    
+            if self._echo:
+                self._log_info(sql_util._long_statement(sub_stmt))
+    
+                imv_stats = f""" {
+                            imv_batch.batchnum}/{imv_batch.total_batches} ({
+                            'ordered'
+                            if imv_batch.rows_sorted else 'unordered'
+                        }{
+                            '; batch not supported'
+                            if imv_batch.is_downgraded
+                            else ''
+                        })"""
+    
+                if imv_batch.batchnum == 1:
+                    stats += imv_stats
+                else:
+                    stats = f"insertmanyvalues{imv_stats}"
+    
+                if not self.engine.hide_parameters:
+                    self._log_info(
+                        "[%s] %r",
+                        stats,
+                        sql_util._repr_params(
+                            sub_params,
+                            batches=10,
+                            ismulti=False,
+                        ),
+                    )
+                else:
+                    self._log_info(
+                        "[%s] [SQL parameters hidden due to "
+                        "hide_parameters=True]",
+                        stats,
+                    )
+    
+            try:
+                for fn in do_execute_dispatch:
+                    if fn(
+                        cursor,
+                        sub_stmt,
+                        sub_params,
+                        context,
+                    ):
+                        break
+                else:
+>                   dialect.do_execute(
+                        cursor,
+                        sub_stmt,
+                        sub_params,
+                        context,
+                    )
+
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:2112: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\default.py:922: in do_execute
+    cursor.execute(statement, parameters)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py:146: in execute
+    self._adapt_connection._handle_exception(error)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py:298: in _handle_exception
+    raise error
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py:128: in execute
+    self.await_(_cursor.execute(operation, parameters))
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:125: in await_only
+    return current.driver.switch(awaitable)  # type: ignore[no-any-return]
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:185: in greenlet_spawn
+    value = await result
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\cursor.py:48: in execute
+    await self._execute(self._cursor.execute, sql, parameters)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\cursor.py:40: in _execute
+    return await self._conn._execute(fn, *args, **kwargs)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\core.py:133: in _execute
+    return await future
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <Connection(Thread-1, started daemon 35100)>
+
+    def run(self) -> None:
+        """
+        Execute function calls on a separate thread.
+    
+        :meta private:
+        """
+        while True:
+            # Continues running until all queue items are processed,
+            # even after connection is closed (so we can finalize all
+            # futures)
+            try:
+                future, function = self._tx.get(timeout=0.1)
+            except Empty:
+                if self._running:
+                    continue
+                break
+            try:
+                LOG.debug("executing %s", function)
+>               result = function()
+E               sqlite3.IntegrityError: UNIQUE constraint failed: pois.id
+
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\core.py:106: IntegrityError
+
+The above exception was the direct cause of the following exception:
+
+event_loop = <ProactorEventLoop running=False closed=False debug=False>
+request = <SubRequest 'seed_pois' for <Function test_wait_time_response_model>>
+kwargs = {'test_db_session': <sqlalchemy.ext.asyncio.session.AsyncSession object at 0x000001CDBD51DBD0>}
+setup = <function _wrap_async_fixture.<locals>._async_fixture_wrapper.<locals>.setup at 0x000001CDBD406D40>
+
+    @functools.wraps(fixture)
+    def _async_fixture_wrapper(
+        event_loop: asyncio.AbstractEventLoop, request: SubRequest, **kwargs: Any
+    ):
+        func = _perhaps_rebind_fixture_func(
+            fixture, request.instance, fixturedef.unittest
+        )
+    
+        async def setup():
+            res = await func(**_add_kwargs(func, kwargs, event_loop, request))
+            return res
+    
+>       return event_loop.run_until_complete(setup())
+
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\pytest_asyncio\plugin.py:326: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\asyncio\base_events.py:654: in run_until_complete
+    return future.result()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\pytest_asyncio\plugin.py:323: in setup
+    res = await func(**_add_kwargs(func, kwargs, event_loop, request))
+tests\conftest.py:126: in seed_pois
+    await test_db_session.commit()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\ext\asyncio\session.py:1011: in commit
+    await greenlet_spawn(self.sync_session.commit)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:192: in greenlet_spawn
+    result = context.switch(value)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:1969: in commit
+    trans.commit(_to_root=True)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\state_changes.py:139: in _go
+    ret_value = fn(self, *arg, **kw)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:1256: in commit
+    self._prepare_impl()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\state_changes.py:139: in _go
+    ret_value = fn(self, *arg, **kw)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:1231: in _prepare_impl
+    self.session.flush()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:4312: in flush
+    self._flush(objects)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:4447: in _flush
+    with util.safe_reraise():
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\langhelpers.py:146: in __exit__
+    raise exc_value.with_traceback(exc_tb)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:4408: in _flush
+    flush_context.execute()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\unitofwork.py:466: in execute
+    rec.execute(self)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\unitofwork.py:642: in execute
+    util.preloaded.orm_persistence.save_obj(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\persistence.py:93: in save_obj
+    _emit_insert_statements(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\persistence.py:1136: in _emit_insert_statements
+    result = connection.execute(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:1416: in execute
+    return meth(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\sql\elements.py:516: in _execute_on_connection
+    return connection._execute_clauseelement(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:1639: in _execute_clauseelement
+    ret = self._execute_context(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:1843: in _execute_context
+    return self._exec_insertmany_context(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:2120: in _exec_insertmany_context
+    self._handle_dbapi_exception(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:2343: in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:2112: in _exec_insertmany_context
+    dialect.do_execute(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\default.py:922: in do_execute
+    cursor.execute(statement, parameters)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py:146: in execute
+    self._adapt_connection._handle_exception(error)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py:298: in _handle_exception
+    raise error
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py:128: in execute
+    self.await_(_cursor.execute(operation, parameters))
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:125: in await_only
+    return current.driver.switch(awaitable)  # type: ignore[no-any-return]
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:185: in greenlet_spawn
+    value = await result
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\cursor.py:48: in execute
+    await self._execute(self._cursor.execute, sql, parameters)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\cursor.py:40: in _execute
+    return await self._conn._execute(fn, *args, **kwargs)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\core.py:133: in _execute
+    return await future
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <Connection(Thread-1, started daemon 35100)>
+
+    def run(self) -> None:
+        """
+        Execute function calls on a separate thread.
+    
+        :meta private:
+        """
+        while True:
+            # Continues running until all queue items are processed,
+            # even after connection is closed (so we can finalize all
+            # futures)
+            try:
+                future, function = self._tx.get(timeout=0.1)
+            except Empty:
+                if self._running:
+                    continue
+                break
+            try:
+                LOG.debug("executing %s", function)
+>               result = function()
+E               sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) UNIQUE constraint failed: pois.id
+E               [SQL: INSERT INTO pois (id, name, poi_type, num_servers, service_rate, updated_at) VALUES (?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?) RETURNING created_at, id]
+E               [parameters: ('WC-Norte-L0-1', 'Restrooms North Level 0 #1', 'restroom', 8, 0.5, None, 'WC-Sul-L1-1', 'Restrooms South Level 1 #1', 'restroom', 6, 0.5, None, 'Food-Sul-1', 'Food Court South #1', 'food', 4, 0.4, None)]
+E               (Background on this error at: https://sqlalche.me/e/20/gkpj)
+
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\core.py:106: IntegrityError
+______ ERROR at setup of TestResponseModels.test_poi_info_response_model ______
+
+self = <sqlalchemy.engine.base.Connection object at 0x000001CDBD133B10>
+dialect = <sqlalchemy.dialects.sqlite.aiosqlite.SQLiteDialect_aiosqlite object at 0x000001CDB8C1D3D0>
+context = <sqlalchemy.dialects.sqlite.aiosqlite.SQLiteExecutionContext_aiosqlite object at 0x000001CDBD1315D0>
+
+    def _exec_insertmany_context(
+        self,
+        dialect: Dialect,
+        context: ExecutionContext,
+    ) -> CursorResult[Any]:
+        """continue the _execute_context() method for an "insertmanyvalues"
+        operation, which will invoke DBAPI
+        cursor.execute() one or more times with individual log and
+        event hook calls.
+    
+        """
+    
+        if dialect.bind_typing is BindTyping.SETINPUTSIZES:
+            generic_setinputsizes = context._prepare_set_input_sizes()
+        else:
+            generic_setinputsizes = None
+    
+        cursor, str_statement, parameters = (
+            context.cursor,
+            context.statement,
+            context.parameters,
+        )
+    
+        effective_parameters = parameters
+    
+        engine_events = self._has_events or self.engine._has_events
+        if self.dialect._has_events:
+            do_execute_dispatch: Iterable[
+                Any
+            ] = self.dialect.dispatch.do_execute
+        else:
+            do_execute_dispatch = ()
+    
+        if self._echo:
+            stats = context._get_cache_stats() + " (insertmanyvalues)"
+    
+        for imv_batch in dialect._deliver_insertmanyvalues_batches(
+            cursor,
+            str_statement,
+            effective_parameters,
+            generic_setinputsizes,
+            context,
+        ):
+            if imv_batch.processed_setinputsizes:
+                try:
+                    dialect.do_set_input_sizes(
+                        context.cursor,
+                        imv_batch.processed_setinputsizes,
+                        context,
+                    )
+                except BaseException as e:
+                    self._handle_dbapi_exception(
+                        e,
+                        sql_util._long_statement(imv_batch.replaced_statement),
+                        imv_batch.replaced_parameters,
+                        None,
+                        context,
+                    )
+    
+            sub_stmt = imv_batch.replaced_statement
+            sub_params = imv_batch.replaced_parameters
+    
+            if engine_events:
+                for fn in self.dispatch.before_cursor_execute:
+                    sub_stmt, sub_params = fn(
+                        self,
+                        cursor,
+                        sub_stmt,
+                        sub_params,
+                        context,
+                        True,
+                    )
+    
+            if self._echo:
+                self._log_info(sql_util._long_statement(sub_stmt))
+    
+                imv_stats = f""" {
+                            imv_batch.batchnum}/{imv_batch.total_batches} ({
+                            'ordered'
+                            if imv_batch.rows_sorted else 'unordered'
+                        }{
+                            '; batch not supported'
+                            if imv_batch.is_downgraded
+                            else ''
+                        })"""
+    
+                if imv_batch.batchnum == 1:
+                    stats += imv_stats
+                else:
+                    stats = f"insertmanyvalues{imv_stats}"
+    
+                if not self.engine.hide_parameters:
+                    self._log_info(
+                        "[%s] %r",
+                        stats,
+                        sql_util._repr_params(
+                            sub_params,
+                            batches=10,
+                            ismulti=False,
+                        ),
+                    )
+                else:
+                    self._log_info(
+                        "[%s] [SQL parameters hidden due to "
+                        "hide_parameters=True]",
+                        stats,
+                    )
+    
+            try:
+                for fn in do_execute_dispatch:
+                    if fn(
+                        cursor,
+                        sub_stmt,
+                        sub_params,
+                        context,
+                    ):
+                        break
+                else:
+>                   dialect.do_execute(
+                        cursor,
+                        sub_stmt,
+                        sub_params,
+                        context,
+                    )
+
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:2112: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\default.py:922: in do_execute
+    cursor.execute(statement, parameters)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py:146: in execute
+    self._adapt_connection._handle_exception(error)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py:298: in _handle_exception
+    raise error
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py:128: in execute
+    self.await_(_cursor.execute(operation, parameters))
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:125: in await_only
+    return current.driver.switch(awaitable)  # type: ignore[no-any-return]
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:185: in greenlet_spawn
+    value = await result
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\cursor.py:48: in execute
+    await self._execute(self._cursor.execute, sql, parameters)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\cursor.py:40: in _execute
+    return await self._conn._execute(fn, *args, **kwargs)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\core.py:133: in _execute
+    return await future
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <Connection(Thread-1, started daemon 35100)>
+
+    def run(self) -> None:
+        """
+        Execute function calls on a separate thread.
+    
+        :meta private:
+        """
+        while True:
+            # Continues running until all queue items are processed,
+            # even after connection is closed (so we can finalize all
+            # futures)
+            try:
+                future, function = self._tx.get(timeout=0.1)
+            except Empty:
+                if self._running:
+                    continue
+                break
+            try:
+                LOG.debug("executing %s", function)
+>               result = function()
+E               sqlite3.IntegrityError: UNIQUE constraint failed: pois.id
+
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\core.py:106: IntegrityError
+
+The above exception was the direct cause of the following exception:
+
+event_loop = <ProactorEventLoop running=False closed=False debug=False>
+request = <SubRequest 'seed_pois' for <Function test_poi_info_response_model>>
+kwargs = {'test_db_session': <sqlalchemy.ext.asyncio.session.AsyncSession object at 0x000001CDBD1328D0>}
+setup = <function _wrap_async_fixture.<locals>._async_fixture_wrapper.<locals>.setup at 0x000001CDBC5A71A0>
+
+    @functools.wraps(fixture)
+    def _async_fixture_wrapper(
+        event_loop: asyncio.AbstractEventLoop, request: SubRequest, **kwargs: Any
+    ):
+        func = _perhaps_rebind_fixture_func(
+            fixture, request.instance, fixturedef.unittest
+        )
+    
+        async def setup():
+            res = await func(**_add_kwargs(func, kwargs, event_loop, request))
+            return res
+    
+>       return event_loop.run_until_complete(setup())
+
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\pytest_asyncio\plugin.py:326: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\asyncio\base_events.py:654: in run_until_complete
+    return future.result()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\pytest_asyncio\plugin.py:323: in setup
+    res = await func(**_add_kwargs(func, kwargs, event_loop, request))
+tests\conftest.py:126: in seed_pois
+    await test_db_session.commit()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\ext\asyncio\session.py:1011: in commit
+    await greenlet_spawn(self.sync_session.commit)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:192: in greenlet_spawn
+    result = context.switch(value)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:1969: in commit
+    trans.commit(_to_root=True)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\state_changes.py:139: in _go
+    ret_value = fn(self, *arg, **kw)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:1256: in commit
+    self._prepare_impl()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\state_changes.py:139: in _go
+    ret_value = fn(self, *arg, **kw)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:1231: in _prepare_impl
+    self.session.flush()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:4312: in flush
+    self._flush(objects)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:4447: in _flush
+    with util.safe_reraise():
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\langhelpers.py:146: in __exit__
+    raise exc_value.with_traceback(exc_tb)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:4408: in _flush
+    flush_context.execute()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\unitofwork.py:466: in execute
+    rec.execute(self)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\unitofwork.py:642: in execute
+    util.preloaded.orm_persistence.save_obj(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\persistence.py:93: in save_obj
+    _emit_insert_statements(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\persistence.py:1136: in _emit_insert_statements
+    result = connection.execute(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:1416: in execute
+    return meth(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\sql\elements.py:516: in _execute_on_connection
+    return connection._execute_clauseelement(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:1639: in _execute_clauseelement
+    ret = self._execute_context(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:1843: in _execute_context
+    return self._exec_insertmany_context(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:2120: in _exec_insertmany_context
+    self._handle_dbapi_exception(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:2343: in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:2112: in _exec_insertmany_context
+    dialect.do_execute(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\default.py:922: in do_execute
+    cursor.execute(statement, parameters)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py:146: in execute
+    self._adapt_connection._handle_exception(error)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py:298: in _handle_exception
+    raise error
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\dialects\sqlite\aiosqlite.py:128: in execute
+    self.await_(_cursor.execute(operation, parameters))
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:125: in await_only
+    return current.driver.switch(awaitable)  # type: ignore[no-any-return]
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:185: in greenlet_spawn
+    value = await result
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\cursor.py:48: in execute
+    await self._execute(self._cursor.execute, sql, parameters)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\cursor.py:40: in _execute
+    return await self._conn._execute(fn, *args, **kwargs)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\core.py:133: in _execute
+    return await future
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <Connection(Thread-1, started daemon 35100)>
+
+    def run(self) -> None:
+        """
+        Execute function calls on a separate thread.
+    
+        :meta private:
+        """
+        while True:
+            # Continues running until all queue items are processed,
+            # even after connection is closed (so we can finalize all
+            # futures)
+            try:
+                future, function = self._tx.get(timeout=0.1)
+            except Empty:
+                if self._running:
+                    continue
+                break
+            try:
+                LOG.debug("executing %s", function)
+>               result = function()
+E               sqlalchemy.exc.IntegrityError: (sqlite3.IntegrityError) UNIQUE constraint failed: pois.id
+E               [SQL: INSERT INTO pois (id, name, poi_type, num_servers, service_rate, updated_at) VALUES (?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?), (?, ?, ?, ?, ?, ?) RETURNING created_at, id]
+E               [parameters: ('WC-Norte-L0-1', 'Restrooms North Level 0 #1', 'restroom', 8, 0.5, None, 'WC-Sul-L1-1', 'Restrooms South Level 1 #1', 'restroom', 6, 0.5, None, 'Food-Sul-1', 'Food Court South #1', 'food', 4, 0.4, None)]
+E               (Background on this error at: https://sqlalche.me/e/20/gkpj)
+
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\aiosqlite\core.py:106: IntegrityError
+================================== FAILURES ===================================
+______________ TestWaitTimeEndpoints.test_get_wait_time_success _______________
+
+self = <tests.test_app.TestWaitTimeEndpoints object at 0x000001CDBA6EE7D0>
+test_client = <httpx.AsyncClient object at 0x000001CDBA7CDBD0>
+test_db_session = <sqlalchemy.ext.asyncio.session.AsyncSession object at 0x000001CDBA0B97D0>
+seed_pois = [{'id': 'WC-Norte-L0-1', 'name': 'Restrooms North Level 0 #1', 'num_servers': 8, 'poi_type': 'restroom', ...}, {'id': ...ype': 'restroom', ...}, {'id': 'Food-Sul-1', 'name': 'Food Court South #1', 'num_servers': 4, 'poi_type': 'food', ...}]
+seed_queue_states = [{'arrival_rate': 2.5, 'confidence_lower': 4.0, 'confidence_upper': 6.5, 'current_wait_minutes': 5.2, ...}, {'arrival_... 3.1, ...}, {'arrival_rate': 3.2, 'confidence_lower': 7.0, 'confidence_upper': 10.5, 'current_wait_minutes': 8.7, ...}]
+
+    @pytest.mark.asyncio
+    async def test_get_wait_time_success(self, test_client, test_db_session, seed_pois, seed_queue_states):
+        """Test getting wait time for a specific POI"""
+        # Seed data is already in database
+>       response = await test_client.get("/api/waittime?poi=WC-Norte-L0-1")
+
+tests\test_app.py:37: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\httpx\_client.py:1757: in get
+    return await self.request(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\httpx\_client.py:1530: in request
+    return await self.send(request, auth=auth, follow_redirects=follow_redirects)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\httpx\_client.py:1617: in send
+    response = await self._send_handling_auth(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\httpx\_client.py:1645: in _send_handling_auth
+    response = await self._send_handling_redirects(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\httpx\_client.py:1682: in _send_handling_redirects
+    response = await self._send_single_request(request)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\httpx\_client.py:1719: in _send_single_request
+    response = await transport.handle_async_request(request)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\httpx\_transports\asgi.py:162: in handle_async_request
+    await self.app(scope, receive, send)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\fastapi\applications.py:1106: in __call__
+    await super().__call__(scope, receive, send)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\applications.py:122: in __call__
+    await self.middleware_stack(scope, receive, send)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\errors.py:184: in __call__
+    raise exc
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\errors.py:162: in __call__
+    await self.app(scope, receive, _send)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\cors.py:83: in __call__
+    await self.app(scope, receive, send)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\exceptions.py:79: in __call__
+    raise exc
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\exceptions.py:68: in __call__
+    await self.app(scope, receive, sender)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\fastapi\middleware\asyncexitstack.py:20: in __call__
+    raise e
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\fastapi\middleware\asyncexitstack.py:17: in __call__
+    await self.app(scope, receive, send)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py:718: in __call__
+    await route.handle(scope, receive, send)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py:276: in handle
+    await self.app(scope, receive, send)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py:66: in app
+    response = await func(request)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\fastapi\routing.py:274: in app
+    raw_response = await run_endpoint_function(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\fastapi\routing.py:191: in run_endpoint_function
+    return await dependant.call(**values)
+app.py:139: in get_wait_time
+    wait_time = await repo.get_current_wait_time(poi)
+db\repositories.py:158: in get_current_wait_time
+    result = await self.session.execute(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\ext\asyncio\session.py:455: in execute
+    result = await greenlet_spawn(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:190: in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:2308: in execute
+    return self._execute_internal(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:2180: in _execute_internal
+    conn = self._connection_for_bind(bind)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:2047: in _connection_for_bind
+    return trans._connection_for_bind(engine, execution_options)
+<string>:2: in _connection_for_bind
+    ???
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\state_changes.py:139: in _go
+    ret_value = fn(self, *arg, **kw)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:1143: in _connection_for_bind
+    conn = bind.connect()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:3268: in connect
+    return self._connection_cls(self)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:145: in __init__
+    self._dbapi_connection = engine.raw_connection()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:3292: in raw_connection
+    return self.pool.connect()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\base.py:452: in connect
+    return _ConnectionFairy._checkout(self)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\base.py:1269: in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\base.py:716: in checkout
+    rec = pool._do_get()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\impl.py:169: in _do_get
+    with util.safe_reraise():
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\langhelpers.py:146: in __exit__
+    raise exc_value.with_traceback(exc_tb)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\impl.py:167: in _do_get
+    return self._create_connection()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\base.py:393: in _create_connection
+    return _ConnectionRecord(self)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\base.py:678: in __init__
+    self.__connect()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\base.py:902: in __connect
+    with util.safe_reraise():
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\langhelpers.py:146: in __exit__
+    raise exc_value.with_traceback(exc_tb)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\base.py:898: in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\create.py:637: in connect
+    return dialect.connect(*cargs, **cparams)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\default.py:616: in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\dialects\postgresql\asyncpg.py:936: in connect
+    await_only(creator_fn(*arg, **kw)),
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:125: in await_only
+    return current.driver.switch(awaitable)  # type: ignore[no-any-return]
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:185: in greenlet_spawn
+    value = await result
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\asyncpg\connection.py:2329: in connect
+    return await connect_utils._connect(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\asyncpg\connect_utils.py:991: in _connect
+    conn = await _connect_addr(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\asyncpg\connect_utils.py:828: in _connect_addr
+    return await __connect_addr(params, True, *args)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+params = ConnectionParameters(user='postgres', password='postgres', database='stadium_waittime', ssl=<ssl.SSLContext object at ...slmode=<SSLMode.prefer: 2>, direct_tls=False, server_settings=None, target_session_attrs=<SessionAttribute.any: 'any'>)
+retry = True, addr = ('localhost', 5432)
+loop = <ProactorEventLoop running=False closed=False debug=False>
+config = ConnectionConfiguration(command_timeout=None, statement_cache_size=100, max_cached_statement_lifetime=300, max_cacheable_statement_size=15360)
+connection_class = <class 'asyncpg.connection.Connection'>
+record_class = <class 'asyncpg.Record'>
+params_input = ConnectionParameters(user='postgres', password='postgres', database='stadium_waittime', ssl=<ssl.SSLContext object at ...slmode=<SSLMode.prefer: 2>, direct_tls=False, server_settings=None, target_session_attrs=<SessionAttribute.any: 'any'>)
+
+    async def __connect_addr(
+        params,
+        retry,
+        addr,
+        loop,
+        config,
+        connection_class,
+        record_class,
+        params_input,
+    ):
+        connected = _create_future(loop)
+    
+        proto_factory = lambda: protocol.Protocol(
+            addr, connected, params, record_class, loop)
+    
+        if isinstance(addr, str):
+            # UNIX socket
+            connector = loop.create_unix_connection(proto_factory, addr)
+    
+        elif params.ssl and params.direct_tls:
+            # if ssl and direct_tls are given, skip STARTTLS and perform direct
+            # SSL connection
+            connector = loop.create_connection(
+                proto_factory, *addr, ssl=params.ssl
+            )
+    
+        elif params.ssl:
+            connector = _create_ssl_connection(
+                proto_factory, *addr, loop=loop, ssl_context=params.ssl,
+                ssl_is_advisory=params.sslmode == SSLMode.prefer)
+        else:
+            connector = loop.create_connection(proto_factory, *addr)
+    
+        tr, pr = await connector
+    
+        try:
+>           await connected
+E           asyncpg.exceptions.InvalidPasswordError: password authentication failed for user "postgres"
+
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\asyncpg\connect_utils.py:876: InvalidPasswordError
+_____________ TestWaitTimeEndpoints.test_get_wait_time_not_found ______________
+
+self = <tests.test_app.TestWaitTimeEndpoints object at 0x000001CDBA6EEED0>
+test_client = <httpx.AsyncClient object at 0x000001CDBD209550>
+
+    @pytest.mark.asyncio
+    async def test_get_wait_time_not_found(self, test_client):
+        """Test getting wait time for non-existent POI returns 404"""
+>       response = await test_client.get("/api/waittime?poi=NonExistent-POI")
+
+tests\test_app.py:52: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\httpx\_client.py:1757: in get
+    return await self.request(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\httpx\_client.py:1530: in request
+    return await self.send(request, auth=auth, follow_redirects=follow_redirects)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\httpx\_client.py:1617: in send
+    response = await self._send_handling_auth(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\httpx\_client.py:1645: in _send_handling_auth
+    response = await self._send_handling_redirects(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\httpx\_client.py:1682: in _send_handling_redirects
+    response = await self._send_single_request(request)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\httpx\_client.py:1719: in _send_single_request
+    response = await transport.handle_async_request(request)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\httpx\_transports\asgi.py:162: in handle_async_request
+    await self.app(scope, receive, send)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\fastapi\applications.py:1106: in __call__
+    await super().__call__(scope, receive, send)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\applications.py:122: in __call__
+    await self.middleware_stack(scope, receive, send)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\errors.py:184: in __call__
+    raise exc
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\errors.py:162: in __call__
+    await self.app(scope, receive, _send)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\cors.py:83: in __call__
+    await self.app(scope, receive, send)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\exceptions.py:79: in __call__
+    raise exc
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\exceptions.py:68: in __call__
+    await self.app(scope, receive, sender)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\fastapi\middleware\asyncexitstack.py:20: in __call__
+    raise e
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\fastapi\middleware\asyncexitstack.py:17: in __call__
+    await self.app(scope, receive, send)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py:718: in __call__
+    await route.handle(scope, receive, send)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py:276: in handle
+    await self.app(scope, receive, send)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py:66: in app
+    response = await func(request)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\fastapi\routing.py:274: in app
+    raw_response = await run_endpoint_function(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\fastapi\routing.py:191: in run_endpoint_function
+    return await dependant.call(**values)
+app.py:139: in get_wait_time
+    wait_time = await repo.get_current_wait_time(poi)
+db\repositories.py:158: in get_current_wait_time
+    result = await self.session.execute(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\ext\asyncio\session.py:455: in execute
+    result = await greenlet_spawn(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:190: in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:2308: in execute
+    return self._execute_internal(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:2180: in _execute_internal
+    conn = self._connection_for_bind(bind)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:2047: in _connection_for_bind
+    return trans._connection_for_bind(engine, execution_options)
+<string>:2: in _connection_for_bind
+    ???
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\state_changes.py:139: in _go
+    ret_value = fn(self, *arg, **kw)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:1143: in _connection_for_bind
+    conn = bind.connect()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:3268: in connect
+    return self._connection_cls(self)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:145: in __init__
+    self._dbapi_connection = engine.raw_connection()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:3292: in raw_connection
+    return self.pool.connect()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\base.py:452: in connect
+    return _ConnectionFairy._checkout(self)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\base.py:1269: in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\base.py:716: in checkout
+    rec = pool._do_get()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\impl.py:169: in _do_get
+    with util.safe_reraise():
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\langhelpers.py:146: in __exit__
+    raise exc_value.with_traceback(exc_tb)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\impl.py:167: in _do_get
+    return self._create_connection()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\base.py:393: in _create_connection
+    return _ConnectionRecord(self)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\base.py:678: in __init__
+    self.__connect()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\base.py:902: in __connect
+    with util.safe_reraise():
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\langhelpers.py:146: in __exit__
+    raise exc_value.with_traceback(exc_tb)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\base.py:898: in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\create.py:637: in connect
+    return dialect.connect(*cargs, **cparams)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\default.py:616: in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\dialects\postgresql\asyncpg.py:936: in connect
+    await_only(creator_fn(*arg, **kw)),
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:125: in await_only
+    return current.driver.switch(awaitable)  # type: ignore[no-any-return]
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:185: in greenlet_spawn
+    value = await result
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\asyncpg\connection.py:2329: in connect
+    return await connect_utils._connect(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\asyncpg\connect_utils.py:991: in _connect
+    conn = await _connect_addr(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\asyncpg\connect_utils.py:828: in _connect_addr
+    return await __connect_addr(params, True, *args)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+params = ConnectionParameters(user='postgres', password='postgres', database='stadium_waittime', ssl=<ssl.SSLContext object at ...slmode=<SSLMode.prefer: 2>, direct_tls=False, server_settings=None, target_session_attrs=<SessionAttribute.any: 'any'>)
+retry = True, addr = ('localhost', 5432)
+loop = <ProactorEventLoop running=False closed=False debug=False>
+config = ConnectionConfiguration(command_timeout=None, statement_cache_size=100, max_cached_statement_lifetime=300, max_cacheable_statement_size=15360)
+connection_class = <class 'asyncpg.connection.Connection'>
+record_class = <class 'asyncpg.Record'>
+params_input = ConnectionParameters(user='postgres', password='postgres', database='stadium_waittime', ssl=<ssl.SSLContext object at ...slmode=<SSLMode.prefer: 2>, direct_tls=False, server_settings=None, target_session_attrs=<SessionAttribute.any: 'any'>)
+
+    async def __connect_addr(
+        params,
+        retry,
+        addr,
+        loop,
+        config,
+        connection_class,
+        record_class,
+        params_input,
+    ):
+        connected = _create_future(loop)
+    
+        proto_factory = lambda: protocol.Protocol(
+            addr, connected, params, record_class, loop)
+    
+        if isinstance(addr, str):
+            # UNIX socket
+            connector = loop.create_unix_connection(proto_factory, addr)
+    
+        elif params.ssl and params.direct_tls:
+            # if ssl and direct_tls are given, skip STARTTLS and perform direct
+            # SSL connection
+            connector = loop.create_connection(
+                proto_factory, *addr, ssl=params.ssl
+            )
+    
+        elif params.ssl:
+            connector = _create_ssl_connection(
+                proto_factory, *addr, loop=loop, ssl_context=params.ssl,
+                ssl_is_advisory=params.sslmode == SSLMode.prefer)
+        else:
+            connector = loop.create_connection(proto_factory, *addr)
+    
+        tr, pr = await connector
+    
+        try:
+>           await connected
+E           asyncpg.exceptions.InvalidPasswordError: password authentication failed for user "postgres"
+
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\asyncpg\connect_utils.py:876: InvalidPasswordError
+_____________ TestWaitTimeEndpoints.test_get_all_wait_times_empty _____________
+
+self = <tests.test_app.TestWaitTimeEndpoints object at 0x000001CDBA6FCE50>
+test_client = <httpx.AsyncClient object at 0x000001CDBCA75850>
+
+    @pytest.mark.asyncio
+    async def test_get_all_wait_times_empty(self, test_client):
+        """Test getting all wait times when none exist"""
+>       response = await test_client.get("/api/waittime/all")
+
+tests\test_app.py:96: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\httpx\_client.py:1757: in get
+    return await self.request(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\httpx\_client.py:1530: in request
+    return await self.send(request, auth=auth, follow_redirects=follow_redirects)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\httpx\_client.py:1617: in send
+    response = await self._send_handling_auth(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\httpx\_client.py:1645: in _send_handling_auth
+    response = await self._send_handling_redirects(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\httpx\_client.py:1682: in _send_handling_redirects
+    response = await self._send_single_request(request)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\httpx\_client.py:1719: in _send_single_request
+    response = await transport.handle_async_request(request)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\httpx\_transports\asgi.py:162: in handle_async_request
+    await self.app(scope, receive, send)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\fastapi\applications.py:1106: in __call__
+    await super().__call__(scope, receive, send)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\applications.py:122: in __call__
+    await self.middleware_stack(scope, receive, send)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\errors.py:184: in __call__
+    raise exc
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\errors.py:162: in __call__
+    await self.app(scope, receive, _send)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\cors.py:83: in __call__
+    await self.app(scope, receive, send)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\exceptions.py:79: in __call__
+    raise exc
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\exceptions.py:68: in __call__
+    await self.app(scope, receive, sender)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\fastapi\middleware\asyncexitstack.py:20: in __call__
+    raise e
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\fastapi\middleware\asyncexitstack.py:17: in __call__
+    await self.app(scope, receive, send)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py:718: in __call__
+    await route.handle(scope, receive, send)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py:276: in handle
+    await self.app(scope, receive, send)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py:66: in app
+    response = await func(request)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\fastapi\routing.py:274: in app
+    raw_response = await run_endpoint_function(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\fastapi\routing.py:191: in run_endpoint_function
+    return await dependant.call(**values)
+app.py:165: in get_all_wait_times
+    wait_times = await repo.get_all_wait_times(poi_type=poi_type)
+db\repositories.py:187: in get_all_wait_times
+    result = await self.session.execute(query)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\ext\asyncio\session.py:455: in execute
+    result = await greenlet_spawn(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:190: in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:2308: in execute
+    return self._execute_internal(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:2180: in _execute_internal
+    conn = self._connection_for_bind(bind)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:2047: in _connection_for_bind
+    return trans._connection_for_bind(engine, execution_options)
+<string>:2: in _connection_for_bind
+    ???
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\state_changes.py:139: in _go
+    ret_value = fn(self, *arg, **kw)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:1143: in _connection_for_bind
+    conn = bind.connect()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:3268: in connect
+    return self._connection_cls(self)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:145: in __init__
+    self._dbapi_connection = engine.raw_connection()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:3292: in raw_connection
+    return self.pool.connect()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\base.py:452: in connect
+    return _ConnectionFairy._checkout(self)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\base.py:1269: in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\base.py:716: in checkout
+    rec = pool._do_get()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\impl.py:169: in _do_get
+    with util.safe_reraise():
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\langhelpers.py:146: in __exit__
+    raise exc_value.with_traceback(exc_tb)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\impl.py:167: in _do_get
+    return self._create_connection()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\base.py:393: in _create_connection
+    return _ConnectionRecord(self)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\base.py:678: in __init__
+    self.__connect()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\base.py:902: in __connect
+    with util.safe_reraise():
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\langhelpers.py:146: in __exit__
+    raise exc_value.with_traceback(exc_tb)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\base.py:898: in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\create.py:637: in connect
+    return dialect.connect(*cargs, **cparams)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\default.py:616: in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\dialects\postgresql\asyncpg.py:936: in connect
+    await_only(creator_fn(*arg, **kw)),
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:125: in await_only
+    return current.driver.switch(awaitable)  # type: ignore[no-any-return]
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:185: in greenlet_spawn
+    value = await result
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\asyncpg\connection.py:2329: in connect
+    return await connect_utils._connect(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\asyncpg\connect_utils.py:991: in _connect
+    conn = await _connect_addr(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\asyncpg\connect_utils.py:828: in _connect_addr
+    return await __connect_addr(params, True, *args)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+params = ConnectionParameters(user='postgres', password='postgres', database='stadium_waittime', ssl=<ssl.SSLContext object at ...slmode=<SSLMode.prefer: 2>, direct_tls=False, server_settings=None, target_session_attrs=<SessionAttribute.any: 'any'>)
+retry = True, addr = ('localhost', 5432)
+loop = <ProactorEventLoop running=False closed=False debug=False>
+config = ConnectionConfiguration(command_timeout=None, statement_cache_size=100, max_cached_statement_lifetime=300, max_cacheable_statement_size=15360)
+connection_class = <class 'asyncpg.connection.Connection'>
+record_class = <class 'asyncpg.Record'>
+params_input = ConnectionParameters(user='postgres', password='postgres', database='stadium_waittime', ssl=<ssl.SSLContext object at ...slmode=<SSLMode.prefer: 2>, direct_tls=False, server_settings=None, target_session_attrs=<SessionAttribute.any: 'any'>)
+
+    async def __connect_addr(
+        params,
+        retry,
+        addr,
+        loop,
+        config,
+        connection_class,
+        record_class,
+        params_input,
+    ):
+        connected = _create_future(loop)
+    
+        proto_factory = lambda: protocol.Protocol(
+            addr, connected, params, record_class, loop)
+    
+        if isinstance(addr, str):
+            # UNIX socket
+            connector = loop.create_unix_connection(proto_factory, addr)
+    
+        elif params.ssl and params.direct_tls:
+            # if ssl and direct_tls are given, skip STARTTLS and perform direct
+            # SSL connection
+            connector = loop.create_connection(
+                proto_factory, *addr, ssl=params.ssl
+            )
+    
+        elif params.ssl:
+            connector = _create_ssl_connection(
+                proto_factory, *addr, loop=loop, ssl_context=params.ssl,
+                ssl_is_advisory=params.sslmode == SSLMode.prefer)
+        else:
+            connector = loop.create_connection(proto_factory, *addr)
+    
+        tr, pr = await connector
+    
+        try:
+>           await connected
+E           asyncpg.exceptions.InvalidPasswordError: password authentication failed for user "postgres"
+
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\asyncpg\connect_utils.py:876: InvalidPasswordError
+____________________ TestPOIEndpoints.test_get_pois_empty _____________________
+
+self = <tests.test_app.TestPOIEndpoints object at 0x000001CDBA6FE550>
+test_client = <httpx.AsyncClient object at 0x000001CDBD451450>
+
+    @pytest.mark.asyncio
+    async def test_get_pois_empty(self, test_client):
+        """Test getting POIs when database is empty"""
+>       response = await test_client.get("/api/pois")
+
+tests\test_app.py:143: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\httpx\_client.py:1757: in get
+    return await self.request(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\httpx\_client.py:1530: in request
+    return await self.send(request, auth=auth, follow_redirects=follow_redirects)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\httpx\_client.py:1617: in send
+    response = await self._send_handling_auth(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\httpx\_client.py:1645: in _send_handling_auth
+    response = await self._send_handling_redirects(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\httpx\_client.py:1682: in _send_handling_redirects
+    response = await self._send_single_request(request)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\httpx\_client.py:1719: in _send_single_request
+    response = await transport.handle_async_request(request)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\httpx\_transports\asgi.py:162: in handle_async_request
+    await self.app(scope, receive, send)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\fastapi\applications.py:1106: in __call__
+    await super().__call__(scope, receive, send)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\applications.py:122: in __call__
+    await self.middleware_stack(scope, receive, send)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\errors.py:184: in __call__
+    raise exc
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\errors.py:162: in __call__
+    await self.app(scope, receive, _send)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\cors.py:83: in __call__
+    await self.app(scope, receive, send)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\exceptions.py:79: in __call__
+    raise exc
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\exceptions.py:68: in __call__
+    await self.app(scope, receive, sender)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\fastapi\middleware\asyncexitstack.py:20: in __call__
+    raise e
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\fastapi\middleware\asyncexitstack.py:17: in __call__
+    await self.app(scope, receive, send)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py:718: in __call__
+    await route.handle(scope, receive, send)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py:276: in handle
+    await self.app(scope, receive, send)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py:66: in app
+    response = await func(request)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\fastapi\routing.py:274: in app
+    raw_response = await run_endpoint_function(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\fastapi\routing.py:191: in run_endpoint_function
+    return await dependant.call(**values)
+app.py:182: in get_pois
+    pois = await repo.get_all_pois(poi_type=poi_type)
+db\repositories.py:57: in get_all_pois
+    result = await self.session.execute(query)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\ext\asyncio\session.py:455: in execute
+    result = await greenlet_spawn(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:190: in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:2308: in execute
+    return self._execute_internal(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:2180: in _execute_internal
+    conn = self._connection_for_bind(bind)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:2047: in _connection_for_bind
+    return trans._connection_for_bind(engine, execution_options)
+<string>:2: in _connection_for_bind
+    ???
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\state_changes.py:139: in _go
+    ret_value = fn(self, *arg, **kw)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:1143: in _connection_for_bind
+    conn = bind.connect()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:3268: in connect
+    return self._connection_cls(self)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:145: in __init__
+    self._dbapi_connection = engine.raw_connection()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:3292: in raw_connection
+    return self.pool.connect()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\base.py:452: in connect
+    return _ConnectionFairy._checkout(self)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\base.py:1269: in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\base.py:716: in checkout
+    rec = pool._do_get()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\impl.py:169: in _do_get
+    with util.safe_reraise():
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\langhelpers.py:146: in __exit__
+    raise exc_value.with_traceback(exc_tb)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\impl.py:167: in _do_get
+    return self._create_connection()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\base.py:393: in _create_connection
+    return _ConnectionRecord(self)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\base.py:678: in __init__
+    self.__connect()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\base.py:902: in __connect
+    with util.safe_reraise():
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\langhelpers.py:146: in __exit__
+    raise exc_value.with_traceback(exc_tb)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\base.py:898: in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\create.py:637: in connect
+    return dialect.connect(*cargs, **cparams)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\default.py:616: in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\dialects\postgresql\asyncpg.py:936: in connect
+    await_only(creator_fn(*arg, **kw)),
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:125: in await_only
+    return current.driver.switch(awaitable)  # type: ignore[no-any-return]
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:185: in greenlet_spawn
+    value = await result
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\asyncpg\connection.py:2329: in connect
+    return await connect_utils._connect(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\asyncpg\connect_utils.py:991: in _connect
+    conn = await _connect_addr(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\asyncpg\connect_utils.py:828: in _connect_addr
+    return await __connect_addr(params, True, *args)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+params = ConnectionParameters(user='postgres', password='postgres', database='stadium_waittime', ssl=<ssl.SSLContext object at ...slmode=<SSLMode.prefer: 2>, direct_tls=False, server_settings=None, target_session_attrs=<SessionAttribute.any: 'any'>)
+retry = True, addr = ('localhost', 5432)
+loop = <ProactorEventLoop running=False closed=False debug=False>
+config = ConnectionConfiguration(command_timeout=None, statement_cache_size=100, max_cached_statement_lifetime=300, max_cacheable_statement_size=15360)
+connection_class = <class 'asyncpg.connection.Connection'>
+record_class = <class 'asyncpg.Record'>
+params_input = ConnectionParameters(user='postgres', password='postgres', database='stadium_waittime', ssl=<ssl.SSLContext object at ...slmode=<SSLMode.prefer: 2>, direct_tls=False, server_settings=None, target_session_attrs=<SessionAttribute.any: 'any'>)
+
+    async def __connect_addr(
+        params,
+        retry,
+        addr,
+        loop,
+        config,
+        connection_class,
+        record_class,
+        params_input,
+    ):
+        connected = _create_future(loop)
+    
+        proto_factory = lambda: protocol.Protocol(
+            addr, connected, params, record_class, loop)
+    
+        if isinstance(addr, str):
+            # UNIX socket
+            connector = loop.create_unix_connection(proto_factory, addr)
+    
+        elif params.ssl and params.direct_tls:
+            # if ssl and direct_tls are given, skip STARTTLS and perform direct
+            # SSL connection
+            connector = loop.create_connection(
+                proto_factory, *addr, ssl=params.ssl
+            )
+    
+        elif params.ssl:
+            connector = _create_ssl_connection(
+                proto_factory, *addr, loop=loop, ssl_context=params.ssl,
+                ssl_is_advisory=params.sslmode == SSLMode.prefer)
+        else:
+            connector = loop.create_connection(proto_factory, *addr)
+    
+        tr, pr = await connector
+    
+        try:
+>           await connected
+E           asyncpg.exceptions.InvalidPasswordError: password authentication failed for user "postgres"
+
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\asyncpg\connect_utils.py:876: InvalidPasswordError
+________________ TestPOIEndpoints.test_get_poi_by_id_not_found ________________
+
+self = <tests.test_app.TestPOIEndpoints object at 0x000001CDBA6EFA10>
+test_client = <httpx.AsyncClient object at 0x000001CDBCC7BC10>
+
+    @pytest.mark.asyncio
+    async def test_get_poi_by_id_not_found(self, test_client):
+        """Test getting non-existent POI returns 404"""
+>       response = await test_client.get("/api/poi/NonExistent-POI")
+
+tests\test_app.py:168: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\httpx\_client.py:1757: in get
+    return await self.request(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\httpx\_client.py:1530: in request
+    return await self.send(request, auth=auth, follow_redirects=follow_redirects)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\httpx\_client.py:1617: in send
+    response = await self._send_handling_auth(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\httpx\_client.py:1645: in _send_handling_auth
+    response = await self._send_handling_redirects(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\httpx\_client.py:1682: in _send_handling_redirects
+    response = await self._send_single_request(request)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\httpx\_client.py:1719: in _send_single_request
+    response = await transport.handle_async_request(request)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\httpx\_transports\asgi.py:162: in handle_async_request
+    await self.app(scope, receive, send)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\fastapi\applications.py:1106: in __call__
+    await super().__call__(scope, receive, send)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\applications.py:122: in __call__
+    await self.middleware_stack(scope, receive, send)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\errors.py:184: in __call__
+    raise exc
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\errors.py:162: in __call__
+    await self.app(scope, receive, _send)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\cors.py:83: in __call__
+    await self.app(scope, receive, send)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\exceptions.py:79: in __call__
+    raise exc
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\exceptions.py:68: in __call__
+    await self.app(scope, receive, sender)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\fastapi\middleware\asyncexitstack.py:20: in __call__
+    raise e
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\fastapi\middleware\asyncexitstack.py:17: in __call__
+    await self.app(scope, receive, send)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py:718: in __call__
+    await route.handle(scope, receive, send)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py:276: in handle
+    await self.app(scope, receive, send)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py:66: in app
+    response = await func(request)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\fastapi\routing.py:274: in app
+    raw_response = await run_endpoint_function(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\fastapi\routing.py:191: in run_endpoint_function
+    return await dependant.call(**values)
+app.py:197: in get_poi_details
+    poi = await repo.get_poi_by_id(poi_id)
+db\repositories.py:36: in get_poi_by_id
+    result = await self.session.execute(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\ext\asyncio\session.py:455: in execute
+    result = await greenlet_spawn(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:190: in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:2308: in execute
+    return self._execute_internal(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:2180: in _execute_internal
+    conn = self._connection_for_bind(bind)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:2047: in _connection_for_bind
+    return trans._connection_for_bind(engine, execution_options)
+<string>:2: in _connection_for_bind
+    ???
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\state_changes.py:139: in _go
+    ret_value = fn(self, *arg, **kw)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:1143: in _connection_for_bind
+    conn = bind.connect()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:3268: in connect
+    return self._connection_cls(self)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:145: in __init__
+    self._dbapi_connection = engine.raw_connection()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:3292: in raw_connection
+    return self.pool.connect()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\base.py:452: in connect
+    return _ConnectionFairy._checkout(self)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\base.py:1269: in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\base.py:716: in checkout
+    rec = pool._do_get()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\impl.py:169: in _do_get
+    with util.safe_reraise():
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\langhelpers.py:146: in __exit__
+    raise exc_value.with_traceback(exc_tb)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\impl.py:167: in _do_get
+    return self._create_connection()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\base.py:393: in _create_connection
+    return _ConnectionRecord(self)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\base.py:678: in __init__
+    self.__connect()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\base.py:902: in __connect
+    with util.safe_reraise():
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\langhelpers.py:146: in __exit__
+    raise exc_value.with_traceback(exc_tb)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\base.py:898: in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\create.py:637: in connect
+    return dialect.connect(*cargs, **cparams)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\default.py:616: in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\dialects\postgresql\asyncpg.py:936: in connect
+    await_only(creator_fn(*arg, **kw)),
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:125: in await_only
+    return current.driver.switch(awaitable)  # type: ignore[no-any-return]
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:185: in greenlet_spawn
+    value = await result
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\asyncpg\connection.py:2329: in connect
+    return await connect_utils._connect(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\asyncpg\connect_utils.py:991: in _connect
+    conn = await _connect_addr(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\asyncpg\connect_utils.py:828: in _connect_addr
+    return await __connect_addr(params, True, *args)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+params = ConnectionParameters(user='postgres', password='postgres', database='stadium_waittime', ssl=<ssl.SSLContext object at ...slmode=<SSLMode.prefer: 2>, direct_tls=False, server_settings=None, target_session_attrs=<SessionAttribute.any: 'any'>)
+retry = True, addr = ('localhost', 5432)
+loop = <ProactorEventLoop running=False closed=False debug=False>
+config = ConnectionConfiguration(command_timeout=None, statement_cache_size=100, max_cached_statement_lifetime=300, max_cacheable_statement_size=15360)
+connection_class = <class 'asyncpg.connection.Connection'>
+record_class = <class 'asyncpg.Record'>
+params_input = ConnectionParameters(user='postgres', password='postgres', database='stadium_waittime', ssl=<ssl.SSLContext object at ...slmode=<SSLMode.prefer: 2>, direct_tls=False, server_settings=None, target_session_attrs=<SessionAttribute.any: 'any'>)
+
+    async def __connect_addr(
+        params,
+        retry,
+        addr,
+        loop,
+        config,
+        connection_class,
+        record_class,
+        params_input,
+    ):
+        connected = _create_future(loop)
+    
+        proto_factory = lambda: protocol.Protocol(
+            addr, connected, params, record_class, loop)
+    
+        if isinstance(addr, str):
+            # UNIX socket
+            connector = loop.create_unix_connection(proto_factory, addr)
+    
+        elif params.ssl and params.direct_tls:
+            # if ssl and direct_tls are given, skip STARTTLS and perform direct
+            # SSL connection
+            connector = loop.create_connection(
+                proto_factory, *addr, ssl=params.ssl
+            )
+    
+        elif params.ssl:
+            connector = _create_ssl_connection(
+                proto_factory, *addr, loop=loop, ssl_context=params.ssl,
+                ssl_is_advisory=params.sslmode == SSLMode.prefer)
+        else:
+            connector = loop.create_connection(proto_factory, *addr)
+    
+        tr, pr = await connector
+    
+        try:
+>           await connected
+E           asyncpg.exceptions.InvalidPasswordError: password authentication failed for user "postgres"
+
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\asyncpg\connect_utils.py:876: InvalidPasswordError
+___________ TestDebugEndpoints.test_get_queue_state_debug_not_found ___________
+
+self = <tests.test_app.TestDebugEndpoints object at 0x000001CDBA6FF890>
+test_client = <httpx.AsyncClient object at 0x000001CDBAD90FD0>
+
+    @pytest.mark.asyncio
+    async def test_get_queue_state_debug_not_found(self, test_client):
+        """Test debug queue state for non-existent POI returns 404"""
+>       response = await test_client.get("/debug/queue-state/NonExistent-POI")
+
+tests\test_app.py:193: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\httpx\_client.py:1757: in get
+    return await self.request(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\httpx\_client.py:1530: in request
+    return await self.send(request, auth=auth, follow_redirects=follow_redirects)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\httpx\_client.py:1617: in send
+    response = await self._send_handling_auth(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\httpx\_client.py:1645: in _send_handling_auth
+    response = await self._send_handling_redirects(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\httpx\_client.py:1682: in _send_handling_redirects
+    response = await self._send_single_request(request)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\httpx\_client.py:1719: in _send_single_request
+    response = await transport.handle_async_request(request)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\httpx\_transports\asgi.py:162: in handle_async_request
+    await self.app(scope, receive, send)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\fastapi\applications.py:1106: in __call__
+    await super().__call__(scope, receive, send)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\applications.py:122: in __call__
+    await self.middleware_stack(scope, receive, send)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\errors.py:184: in __call__
+    raise exc
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\errors.py:162: in __call__
+    await self.app(scope, receive, _send)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\cors.py:83: in __call__
+    await self.app(scope, receive, send)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\exceptions.py:79: in __call__
+    raise exc
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\middleware\exceptions.py:68: in __call__
+    await self.app(scope, receive, sender)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\fastapi\middleware\asyncexitstack.py:20: in __call__
+    raise e
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\fastapi\middleware\asyncexitstack.py:17: in __call__
+    await self.app(scope, receive, send)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py:718: in __call__
+    await route.handle(scope, receive, send)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py:276: in handle
+    await self.app(scope, receive, send)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\starlette\routing.py:66: in app
+    response = await func(request)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\fastapi\routing.py:274: in app
+    raw_response = await run_endpoint_function(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\fastapi\routing.py:191: in run_endpoint_function
+    return await dependant.call(**values)
+app.py:217: in get_queue_state_debug
+    state = await repo.get_queue_state_raw(poi_id)
+db\repositories.py:204: in get_queue_state_raw
+    result = await self.session.execute(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\ext\asyncio\session.py:455: in execute
+    result = await greenlet_spawn(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:190: in greenlet_spawn
+    result = context.throw(*sys.exc_info())
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:2308: in execute
+    return self._execute_internal(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:2180: in _execute_internal
+    conn = self._connection_for_bind(bind)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:2047: in _connection_for_bind
+    return trans._connection_for_bind(engine, execution_options)
+<string>:2: in _connection_for_bind
+    ???
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\state_changes.py:139: in _go
+    ret_value = fn(self, *arg, **kw)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\orm\session.py:1143: in _connection_for_bind
+    conn = bind.connect()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:3268: in connect
+    return self._connection_cls(self)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:145: in __init__
+    self._dbapi_connection = engine.raw_connection()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\base.py:3292: in raw_connection
+    return self.pool.connect()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\base.py:452: in connect
+    return _ConnectionFairy._checkout(self)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\base.py:1269: in _checkout
+    fairy = _ConnectionRecord.checkout(pool)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\base.py:716: in checkout
+    rec = pool._do_get()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\impl.py:169: in _do_get
+    with util.safe_reraise():
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\langhelpers.py:146: in __exit__
+    raise exc_value.with_traceback(exc_tb)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\impl.py:167: in _do_get
+    return self._create_connection()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\base.py:393: in _create_connection
+    return _ConnectionRecord(self)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\base.py:678: in __init__
+    self.__connect()
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\base.py:902: in __connect
+    with util.safe_reraise():
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\langhelpers.py:146: in __exit__
+    raise exc_value.with_traceback(exc_tb)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\pool\base.py:898: in __connect
+    self.dbapi_connection = connection = pool._invoke_creator(self)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\create.py:637: in connect
+    return dialect.connect(*cargs, **cparams)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\engine\default.py:616: in connect
+    return self.loaded_dbapi.connect(*cargs, **cparams)
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\dialects\postgresql\asyncpg.py:936: in connect
+    await_only(creator_fn(*arg, **kw)),
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:125: in await_only
+    return current.driver.switch(awaitable)  # type: ignore[no-any-return]
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\sqlalchemy\util\_concurrency_py3k.py:185: in greenlet_spawn
+    value = await result
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\asyncpg\connection.py:2329: in connect
+    return await connect_utils._connect(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\asyncpg\connect_utils.py:991: in _connect
+    conn = await _connect_addr(
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\asyncpg\connect_utils.py:828: in _connect_addr
+    return await __connect_addr(params, True, *args)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+params = ConnectionParameters(user='postgres', password='postgres', database='stadium_waittime', ssl=<ssl.SSLContext object at ...slmode=<SSLMode.prefer: 2>, direct_tls=False, server_settings=None, target_session_attrs=<SessionAttribute.any: 'any'>)
+retry = True, addr = ('localhost', 5432)
+loop = <ProactorEventLoop running=False closed=False debug=False>
+config = ConnectionConfiguration(command_timeout=None, statement_cache_size=100, max_cached_statement_lifetime=300, max_cacheable_statement_size=15360)
+connection_class = <class 'asyncpg.connection.Connection'>
+record_class = <class 'asyncpg.Record'>
+params_input = ConnectionParameters(user='postgres', password='postgres', database='stadium_waittime', ssl=<ssl.SSLContext object at ...slmode=<SSLMode.prefer: 2>, direct_tls=False, server_settings=None, target_session_attrs=<SessionAttribute.any: 'any'>)
+
+    async def __connect_addr(
+        params,
+        retry,
+        addr,
+        loop,
+        config,
+        connection_class,
+        record_class,
+        params_input,
+    ):
+        connected = _create_future(loop)
+    
+        proto_factory = lambda: protocol.Protocol(
+            addr, connected, params, record_class, loop)
+    
+        if isinstance(addr, str):
+            # UNIX socket
+            connector = loop.create_unix_connection(proto_factory, addr)
+    
+        elif params.ssl and params.direct_tls:
+            # if ssl and direct_tls are given, skip STARTTLS and perform direct
+            # SSL connection
+            connector = loop.create_connection(
+                proto_factory, *addr, ssl=params.ssl
+            )
+    
+        elif params.ssl:
+            connector = _create_ssl_connection(
+                proto_factory, *addr, loop=loop, ssl_context=params.ssl,
+                ssl_is_advisory=params.sslmode == SSLMode.prefer)
+        else:
+            connector = loop.create_connection(proto_factory, *addr)
+    
+        tr, pr = await connector
+    
+        try:
+>           await connected
+E           asyncpg.exceptions.InvalidPasswordError: password authentication failed for user "postgres"
+
+C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\asyncpg\connect_utils.py:876: InvalidPasswordError
+============================== warnings summary ===============================
+..\..\..\..\..\AppData\Local\Programs\Python\Python311\Lib\site-packages\pydantic\_internal\_config.py:268
+..\..\..\..\..\AppData\Local\Programs\Python\Python311\Lib\site-packages\pydantic\_internal\_config.py:268
+..\..\..\..\..\AppData\Local\Programs\Python\Python311\Lib\site-packages\pydantic\_internal\_config.py:268
+..\..\..\..\..\AppData\Local\Programs\Python\Python311\Lib\site-packages\pydantic\_internal\_config.py:268
+  C:\Users\joaov\AppData\Local\Programs\Python\Python311\Lib\site-packages\pydantic\_internal\_config.py:268: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.5/migration/
+    warnings.warn(DEPRECATION_MESSAGE, DeprecationWarning)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_app.py::TestWaitTimeEndpoints::test_get_wait_time_success
+FAILED tests/test_app.py::TestWaitTimeEndpoints::test_get_wait_time_not_found
+FAILED tests/test_app.py::TestWaitTimeEndpoints::test_get_all_wait_times_empty
+FAILED tests/test_app.py::TestPOIEndpoints::test_get_pois_empty - asyncpg.exc...
+FAILED tests/test_app.py::TestPOIEndpoints::test_get_poi_by_id_not_found - as...
+FAILED tests/test_app.py::TestDebugEndpoints::test_get_queue_state_debug_not_found
+ERROR tests/test_app.py::TestWaitTimeEndpoints::test_get_all_wait_times - sql...
+ERROR tests/test_app.py::TestWaitTimeEndpoints::test_get_all_wait_times_filtered_by_type
+ERROR tests/test_app.py::TestPOIEndpoints::test_get_all_pois - sqlalchemy.exc...
+ERROR tests/test_app.py::TestPOIEndpoints::test_get_pois_filtered_by_type - s...
+ERROR tests/test_app.py::TestPOIEndpoints::test_get_poi_by_id_success - sqlal...
+ERROR tests/test_app.py::TestDebugEndpoints::test_get_queue_state_debug - sql...
+ERROR tests/test_app.py::TestResponseModels::test_wait_time_response_model - ...
+ERROR tests/test_app.py::TestResponseModels::test_poi_info_response_model - s...
+============== 6 failed, 6 passed, 4 warnings, 8 errors in 7.96s ==============

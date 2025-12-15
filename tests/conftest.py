@@ -1,5 +1,6 @@
 # tests/conftest.py
 import pytest
+import pytest_asyncio
 import asyncio
 from datetime import datetime, timezone, timedelta
 from httpx import AsyncClient, ASGITransport
@@ -13,6 +14,7 @@ os.environ['TESTING'] = 'True'
 os.environ['LOG_LEVEL'] = 'CRITICAL'
 
 from app import app
+from sqlalchemy.pool import StaticPool
 from db.database import Base, get_db
 from db.models import POI, QueueState, CameraEvent
 
@@ -21,15 +23,17 @@ TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 test_engine = create_async_engine(
     TEST_DATABASE_URL,
     echo=False,
-    pool_pre_ping=True
+    pool_pre_ping=True,
+    poolclass=StaticPool,
 )
 
 TestingSessionLocal = async_sessionmaker(
     test_engine,
     class_=AsyncSession,
-    expire_on_commit=False,
-    autoflush=False
+    expire_on_commit=False
 )
+
+from unittest.mock import MagicMock, patch
 
 @pytest.fixture(scope="session")
 def event_loop():
@@ -40,31 +44,54 @@ def event_loop():
     loop.close()
 
 @pytest.fixture(scope="session", autouse=True)
-async def setup_database():
-    """Cria tabelas uma vez por sessão de teste."""
-    async with test_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
-        await conn.run_sync(Base.metadata.create_all)
-    
-    yield
-    
-    async with test_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
-    await test_engine.dispose()
-
-@pytest.fixture(scope="function")
-async def test_db_session():
-    """Sessão de banco com rollback automático."""
-    async with TestingSessionLocal() as session:
-        await session.begin_nested()
+def mock_app_dependencies():
+    """
+    Mock external dependencies used in app lifespan to prevent 
+    production DB/Service connection attempts during testing.
+    Autouse ensures this runs for the entire session.
+    """
+    with patch("app.init_db", new_callable=MagicMock) as mock_init, \
+         patch("app.close_db", new_callable=MagicMock) as mock_close, \
+         patch("app.MapServiceClient", new_callable=MagicMock) as mock_map_service, \
+         patch("app.EventConsumer", new_callable=MagicMock) as mock_consumer:
         
+        # Setup mocks
+        mock_init.return_value = None
+        mock_close.return_value = None
+        
+        # Mock MapService fetch_pois to return empty list or sample data to avoid error logs
+        mock_map_instance = mock_map_service.return_value
+        mock_map_instance.fetch_pois.return_value = []
+        
+        # Mock EventConsumer start/stop
+        mock_consumer_instance = mock_consumer.return_value
+        mock_consumer_instance.start.return_value = None
+        mock_consumer_instance.stop.return_value = None
+        mock_consumer_instance.running = True
+        mock_consumer_instance.smoothers = {}
+        mock_consumer_instance.queue_models = {}
+
+        yield
+
+
+@pytest_asyncio.fixture(scope="function")
+async def test_db_session():
+    """Sessão de banco para cada teste (cria e remove tabelas)."""
+    # Create tables for this test
+    async with test_engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+    async with TestingSessionLocal() as session:
         try:
             yield session
         finally:
-            await session.rollback()
             await session.close()
 
-@pytest.fixture(scope="function")
+    # Drop tables after test
+    async with test_engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+
+@pytest_asyncio.fixture(scope="function")
 async def test_client(test_db_session):
     """Cliente de teste HTTP."""
     async def override_get_db():
@@ -85,7 +112,7 @@ async def test_client(test_db_session):
     app.dependency_overrides.clear()
 
 # Manter as fixtures originais que seus testes esperam:
-@pytest.fixture(scope="function")
+@pytest_asyncio.fixture(scope="function")
 async def seed_pois(test_db_session):
     """Popula o banco de dados com POIs de teste."""
     test_pois_data = [
@@ -122,10 +149,10 @@ async def seed_pois(test_db_session):
         )
         test_db_session.add(poi)
     
-    await test_db_session.commit()
+    await test_db_session.flush()
     return test_pois_data
 
-@pytest.fixture(scope="function")
+@pytest_asyncio.fixture(scope="function")
 async def seed_queue_states(test_db_session):
     """Popula o banco de dados com estados de fila de teste."""
     test_states = [
@@ -171,7 +198,7 @@ async def seed_queue_states(test_db_session):
         )
         test_db_session.add(state)
     
-    await test_db_session.commit()
+    await test_db_session.flush()
     return test_states
 
 @pytest.fixture
