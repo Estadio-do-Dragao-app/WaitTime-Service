@@ -39,7 +39,6 @@ jobs:
           timeout 300 python -m pytest tests/ \
             --cov=. \
             --cov-report=xml \
-            --cov-report=html \
             -v \
             --tb=short \
             --asyncio-mode=auto \
@@ -60,7 +59,6 @@ jobs:
           name: coverage-reports
           path: |
             coverage.xml
-            htmlcov/
           retention-days: 7
 
   sonarqube:
