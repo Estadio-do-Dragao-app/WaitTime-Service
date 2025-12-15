@@ -10,8 +10,7 @@ jobs:
   test:
     name: Run Tests
     runs-on: ubuntu-latest
-    # Removemos timeout para debug, mas depois podemos reduzir
-    # timeout-minutes: 10
+    timeout-minutes: 2
     
     steps:
       - name: Checkout code
@@ -200,19 +199,3 @@ jobs:
             -Dsonar.scm.provider=git
             -Dsonar.sourceEncoding=UTF-8
             -Dsonar.python.version=3.11
-
-  # Job opcional para garantir que tudo está funcionando
-  verify:
-    name: Verify Pipeline
-    runs-on: ubuntu-latest
-    needs: [test, sonarqube]
-    if: always()
-    
-    steps:
-      - name: Pipeline status
-        run: |
-          echo "📊 Pipeline Status Summary:"
-          echo "- Test job: ${{ needs.test.result }}"
-          echo "- SonarQube job: ${{ needs.sonarqube.result }}"
-          echo ""
-          echo "🎉 Pipeline completed!"
