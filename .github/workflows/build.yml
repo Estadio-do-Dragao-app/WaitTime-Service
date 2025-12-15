@@ -1,19 +1,90 @@
-name: Build
+name: Build and Test WaitTime Service
+
 on:
   push:
-    branches:
-      - main
+    branches: [main, develop]
   pull_request:
-    types: [opened, synchronize, reopened]
+    branches: [main]
+
 jobs:
-  sonarqube:
-    name: SonarQube
+  test:
+    name: Run Tests
     runs-on: ubuntu-latest
+    
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+      
+      - name: Set up Python 3.11
+        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b  # v5.3.0
         with:
-          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+          python-version: '3.11'
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest==7.4.3 pytest-asyncio==0.21.1 pytest-cov pytest-mock coverage aiosqlite httpx-sse
+      
+      - name: Run tests and generate coverage
+        id: tests
+        env:
+          TEST_DATABASE_URL: 'sqlite+aiosqlite:///:memory:'
+          MAP_SERVICE_URL: 'http://test-map-service.mock'
+          SECRET_KEY: 'test-secret-key-for-tests'
+          LOG_LEVEL: 'WARNING'
+        run: |
+          python -m pytest tests/ \
+            --asyncio-mode=auto \
+            --cov=. \
+            --cov-report=xml \
+            --cov-report=html \
+            --tb=short \
+            --disable-warnings \
+            -v
+      
+      - name: Upload coverage reports
+        if: always() && hashFiles('coverage.xml') != ''
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882  # v4.4.3
+        with:
+          name: coverage-reports
+          path: |
+            coverage.xml
+            htmlcov/
+          retention-days: 7
+
+  sonarqube:
+    name: SonarQube Scan
+    runs-on: ubuntu-latest
+    needs: [test]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+        with:
+          fetch-depth: 0
+      
+      - name: Download coverage report
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16  # v4.1.8
+        with:
+          name: coverage-reports
+      
       - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@v6
+        uses: SonarSource/sonarqube-scan-action@aecaf43ae57e412bd97d70ef9ce6076e672fe0a9  # v3.0.0
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        with:
+          args: >
+            -Dsonar.projectKey=Estadio-do-Dragao-app_WaitTime-Service
+            -Dsonar.organization=estadio-do-dragao-app
+            -Dsonar.sources=.
+            -Dsonar.exclusions=tests/**,example_client.py,mqtt_configs.py,mosquitto.conf,docker-compose.yml,mosquitto.log,*.md
+            -Dsonar.tests=tests
+            -Dsonar.test.inclusions=tests/**/*.py
+            -Dsonar.python.coverage.reportPaths=coverage.xml
+            -Dsonar.scm.provider=git
+            -Dsonar.sourceEncoding=UTF-8
+            -Dsonar.python.version=3.11
+
