@@ -69,12 +69,14 @@ jobs:
           name: coverage-reports
       
       - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@v7.0.0
+        uses: SonarSource/sonarqube-scan-action@v6
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         with:
           args: >
+            -Dsonar.projectKey=Estadio-do-Dragao-app_WaitTime-Service  # ADICIONAR
+            -Dsonar.organization=estadio-do-dragao-app  # ADICIONAR (se for SonarCloud)
             -Dsonar.sources=.
             -Dsonar.exclusions=tests/**,example_client.py,mqtt_configs.py,mosquitto.conf,docker-compose.yml,mosquitto.log,*.md
             -Dsonar.tests=tests
