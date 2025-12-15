@@ -8,276 +8,77 @@ on:
 
 jobs:
   test:
-    name: Run Tests with Diagnostics
+    name: Run Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     
     steps:
-      # Step 1: Checkout
       - name: Checkout code
-        id: checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
       
-      # Step 2: Setup Python
-      - name: Setup Python 3.11
-        id: setup-python
+      - name: Set up Python 3.11
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
           cache: 'pip'
       
-      # Step 3: Diagnostic - Environment
-      - name: Diagnostic - Environment
-        id: diag-env
-        run: |
-          echo "=== ENVIRONMENT DIAGNOSTICS ==="
-          echo "Runner OS: $(uname -a)"
-          echo "Python: $(python --version)"
-          echo "PWD: $(pwd)"
-          echo "Files in root:"
-          ls -la
-          echo "Disk space:"
-          df -h
-          echo "Memory:"
-          free -h
-          echo "Python path:"
-          python -c "import sys; print('\n'.join(sys.path))"
-      
-      # Step 4: Install dependencies
       - name: Install dependencies
-        id: install-deps
         run: |
-          echo "=== INSTALLING DEPENDENCIES ==="
           python -m pip install --upgrade pip
-          echo "Installing from requirements.txt..."
           pip install -r requirements.txt
-          echo "Installing test dependencies..."
-          pip install pytest pytest-cov pytest-mock pytest-asyncio httpx httpx-sse sqlalchemy aiosqlite
-          echo "=== INSTALLED PACKAGES ==="
-          pip list
+          pip install httpx-sse
       
-      # Step 5: Verify imports
-      - name: Verify imports
-        id: verify-imports
-        run: |
-          echo "=== VERIFYING IMPORTS ==="
-          python -c "
-          try:
-              import pytest
-              import asyncio
-              import httpx
-              import sqlalchemy
-              from sqlalchemy.ext.asyncio import create_async_engine
-              print('✓ All imports successful')
-          except Exception as e:
-              print(f'✗ Import error: {e}')
-              raise
-          "
-      
-      # Step 6: Setup test environment
-      - name: Setup test environment
-        id: setup-env
-        run: |
-          echo "=== SETTING UP TEST ENVIRONMENT ==="
-          export TEST_DATABASE_URL='sqlite+aiosqlite:///:memory:'
-          export MAP_SERVICE_URL='http://test-map-service.mock'
-          export SECRET_KEY='test-secret-key-for-tests'
-          export LOG_LEVEL='WARNING'
-          echo "Environment variables set"
-      
-      # Step 7: Run pytest with minimal output (just to test if it works)
-      - name: Run minimal test
-        id: minimal-test
+      - name: Run tests with coverage
         env:
           TEST_DATABASE_URL: 'sqlite+aiosqlite:///:memory:'
           MAP_SERVICE_URL: 'http://test-map-service.mock'
           SECRET_KEY: 'test-secret-key-for-tests'
           LOG_LEVEL: 'WARNING'
         run: |
-          echo "=== RUNNING MINIMAL TEST ==="
-          set +e  # Don't fail on error
+          echo "Running tests..."
           
-          echo "Test 1: Run one specific test"
-          python -m pytest tests/test_models.py::TestQueueEvent::test_valid_queue_event -xvs
-          
-          echo "Test 2: Check if test discovery works"
-          python -m pytest tests/ --collect-only --quiet 2>&1 | head -20
-          
-          echo "Test 3: Run with no warnings"
-          python -m pytest tests/test_models.py -v --tb=short --disable-warnings 2>&1 | tail -20
-          
-          set -e
-          echo "=== MINIMAL TEST COMPLETE ==="
-      
-      # Step 8: Run all tests with coverage (main test suite)
-      - name: Run test suite
-        id: run-tests
-        env:
-          TEST_DATABASE_URL: 'sqlite+aiosqlite:///:memory:'
-          MAP_SERVICE_URL: 'http://test-map-service.mock'
-          SECRET_KEY: 'test-secret-key-for-tests'
-          LOG_LEVEL: 'WARNING'
-          PYTHONUNBUFFERED: '1'
-        run: |
-          echo "=== RUNNING FULL TEST SUITE ==="
-          echo "Starting at: $(date)"
-          
-          # Run pytest with explicit output
+          # Run tests WITHOUT tee to avoid hanging
           python -m pytest tests/ \
             --cov=./ \
             --cov-report=term \
-            --cov-report=xml:coverage.xml \
-            --cov-report=html:htmlcov \
+            --cov-report=xml \
+            --cov-report=html \
             -v \
-            --tb=short \
-            --disable-warnings \
-            --durations=10 \
-            --log-level=DEBUG 2>&1 | tee test_output.log
+            --disable-warnings
           
-          echo "Test suite completed at: $(date)"
-          
-          # Check exit code
-          TEST_EXIT_CODE=$?
-          echo "Pytest exit code: $TEST_EXIT_CODE"
-          
-          if [ $TEST_EXIT_CODE -eq 0 ]; then
-            echo "✓ All tests passed"
-          else
-            echo "✗ Some tests failed"
-          fi
+          echo "Tests completed successfully"
       
-      # Step 9: Generate coverage report
-      - name: Generate coverage report
-        id: coverage-report
-        if: always()
-        run: |
-          echo "=== GENERATING COVERAGE REPORT ==="
-          
-          # Check if coverage files exist
-          if [ -f "coverage.xml" ]; then
-            echo "✓ coverage.xml exists"
-            ls -la coverage.xml
-          else
-            echo "✗ coverage.xml not found"
-            # Create empty coverage file
-            echo '<?xml version="1.0" ?><coverage></coverage>' > coverage.xml
-          fi
-          
-          if [ -d "htmlcov" ]; then
-            echo "✓ htmlcov directory exists"
-            ls -la htmlcov/ | head -10
-          else
-            echo "✗ htmlcov directory not found"
-            mkdir -p htmlcov
-            echo "<html><body>No coverage data</body></html>" > htmlcov/index.html
-          fi
-          
-          # Try to generate coverage report
-          python -m coverage report --format=text --show-missing || echo "Coverage report failed but continuing..."
-      
-      # Step 10: Post-test diagnostics
-      - name: Post-test diagnostics
-        id: post-diag
-        if: always()
-        run: |
-          echo "=== POST-TEST DIAGNOSTICS ==="
-          echo "Current time: $(date)"
-          echo "Files generated:"
-          find . -name "*.xml" -o -name "*.log" -o -name "*.html" -o -name "*.pyc" | head -20
-          echo "Directory structure:"
-          ls -la
-          echo "Test output log (last 50 lines):"
-          tail -50 test_output.log 2>/dev/null || echo "No test_output.log found"
-          echo "Processes running:"
-          ps aux | grep -E "(python|pytest)" | grep -v grep || true
-      
-      # Step 11: Upload artifacts
-      - name: Upload artifacts for debugging
-        id: upload-artifacts
-        if: always()
+      - name: Upload coverage reports
         uses: actions/upload-artifact@v4
         with:
-          name: test-artifacts
+          name: coverage-reports
           path: |
             coverage.xml
             htmlcov/
-            test_output.log
-            .pytest_cache/
-            **/*.log
           retention-days: 7
-          if-no-files-found: warn
-      
-      # Step 12: Final status
-      - name: Final status
-        id: final-status
-        if: always()
-        run: |
-          echo "=== FINAL STATUS ==="
-          echo "Job name: ${{ github.job }}"
-          echo "Workflow: ${{ github.workflow }}"
-          echo "Run ID: ${{ github.run_id }}"
-          echo "Run attempt: ${{ github.run_attempt }}"
-          echo "Timestamp: $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
-          echo "All steps completed"
 
   sonarqube:
     name: SonarQube Scan
     runs-on: ubuntu-latest
     needs: [test]
-    if: success() || failure()  # Run even if test fails for diagnostics
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
       
-      - name: Download test artifacts
+      - name: Download coverage report
         uses: actions/download-artifact@v4
         with:
-          name: test-artifacts
-      
-      - name: Verify downloaded artifacts
-        run: |
-          echo "=== VERIFYING ARTIFACTS ==="
-          ls -la
-          if [ -f "coverage.xml" ]; then
-            echo "✓ coverage.xml downloaded"
-            echo "File size: $(wc -l < coverage.xml) lines"
-          else
-            echo "✗ coverage.xml not found"
-            # Create minimal coverage file
-            cat > coverage.xml << 'EOF'
-            <?xml version="1.0" ?>
-            <coverage>
-              <sources>
-                <source>/github/workspace</source>
-              </sources>
-              <packages>
-                <package name=".">
-                  <classes>
-                    <class name="app.py" filename="app.py">
-                      <methods/>
-                      <lines>
-                        <line number="1" hits="1"/>
-                      </lines>
-                    </class>
-                  </classes>
-                </package>
-              </packages>
-            </coverage>
-            EOF
-          fi
+          name: coverage-reports
       
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v7.0.0
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL || 'https://sonarcloud.io' }}
         with:
           args: >
-            -Dsonar.organization=${{ secrets.SONAR_ORGANIZATION }}
-            -Dsonar.projectKey=${{ secrets.SONAR_PROJECT_KEY || 'WaitTime-Service' }}
             -Dsonar.sources=.
             -Dsonar.exclusions=tests/**,example_client.py,mqtt_configs.py,mosquitto.conf,docker-compose.yml,mosquitto.log,*.md
             -Dsonar.tests=tests
@@ -286,11 +87,3 @@ jobs:
             -Dsonar.scm.provider=git
             -Dsonar.sourceEncoding=UTF-8
             -Dsonar.python.version=3.11
-            -Dsonar.verbose=true
-      
-      - name: SonarQube Quality Gate Check
-        if: always()
-        run: |
-          echo "=== SONARQUBE QUALITY GATE ==="
-          echo "Scan completed - check SonarQube dashboard for results"
-          echo "If quality gate fails, this step will not fail the workflow"
