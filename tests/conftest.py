@@ -1,94 +1,182 @@
+# tests/conftest.py
 import pytest
-import pytest_asyncio
 import asyncio
-from typing import AsyncGenerator, Generator
-from unittest.mock import MagicMock
+from datetime import datetime, timezone, timedelta
 from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-from sqlalchemy.pool import StaticPool
+import os
+import sys
 
-from db.database import Base, get_db
-from db import database
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+os.environ['TESTING'] = 'True'
+os.environ['LOG_LEVEL'] = 'CRITICAL'
+
 from app import app
-from models import QueueEvent
+from db.database import Base, get_db
+from db.models import POI, QueueState, CameraEvent
 
-# Use in-memory SQLite for tests
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
+test_engine = create_async_engine(
+    TEST_DATABASE_URL,
+    echo=False,
+    pool_pre_ping=True
+)
+
+TestingSessionLocal = async_sessionmaker(
+    test_engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
+    autoflush=False
+)
+
 @pytest.fixture(scope="session")
-def event_loop() -> Generator:
-    """Create an instance of the default event loop for each test case."""
-    loop = asyncio.get_event_loop_policy().new_event_loop()
+def event_loop():
+    """Event loop para sessão de teste."""
+    policy = asyncio.get_event_loop_policy()
+    loop = policy.new_event_loop()
     yield loop
     loop.close()
 
-@pytest_asyncio.fixture(scope="function")
-async def db_engine():
-    """Create async engine for the test session"""
-    engine = create_async_engine(
-        TEST_DATABASE_URL,
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    
-    # Create tables
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-        
-    yield engine
-    
-    # Drop tables
-    async with engine.begin() as conn:
+@pytest.fixture(scope="session", autouse=True)
+async def setup_database():
+    """Cria tabelas uma vez por sessão de teste."""
+    async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
+        await conn.run_sync(Base.metadata.create_all)
     
-    await engine.dispose()
-
-@pytest_asyncio.fixture
-async def test_db_session(db_engine) -> AsyncGenerator[AsyncSession, None]:
-    """
-    Get a test database session.
-    This fixture creates a new session for each test and rolls back changes at the end.
-    It also patches the application's session factory to use this test session.
-    """
-    # Create a new session factory bound to the test engine
-    test_session_factory = async_sessionmaker(
-        db_engine,
-        class_=AsyncSession,
-        expire_on_commit=False,
-        autoflush=False,
-    )
+    yield
     
-    # Create a session
-    async with test_session_factory() as session:
-        # Patch the global session factory in db.database
-        # This ensures app code uses our test engine/session
-        original_factory = database.async_session_factory
-        database.async_session_factory = test_session_factory
-        
-        yield session
-        
-        # Rollback all changes after test
-        await session.rollback()
-        
-        # Restore original factory
-        database.async_session_factory = original_factory
+    async with test_engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+    await test_engine.dispose()
 
-@pytest_asyncio.fixture
-async def test_client(test_db_session) -> AsyncGenerator[AsyncClient, None]:
-    """Get a test client for the application"""
-    # Create a client using the app
-    # The dependency override isn't strictly necessary due to the patch in test_db_session,
-    # but it's good practice just in case we used Depends(get_db)
+@pytest.fixture(scope="function")
+async def test_db_session():
+    """Sessão de banco com rollback automático."""
+    async with TestingSessionLocal() as session:
+        await session.begin_nested()
+        
+        try:
+            yield session
+        finally:
+            await session.rollback()
+            await session.close()
+
+@pytest.fixture(scope="function")
+async def test_client(test_db_session):
+    """Cliente de teste HTTP."""
+    async def override_get_db():
+        try:
+            yield test_db_session
+        finally:
+            await test_db_session.rollback()
     
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as client:
-        yield client
+    app.dependency_overrides[get_db] = override_get_db
+    
+    async with AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url="http://test",
+        timeout=10.0
+    ) as ac:
+        yield ac
+    
+    app.dependency_overrides.clear()
 
-# ==================== DATA FIXTURES ====================
+# Manter as fixtures originais que seus testes esperam:
+@pytest.fixture(scope="function")
+async def seed_pois(test_db_session):
+    """Popula o banco de dados com POIs de teste."""
+    test_pois_data = [
+        {
+            "id": "WC-Norte-L0-1",
+            "name": "Restrooms North Level 0 #1",
+            "poi_type": "restroom",
+            "num_servers": 8,
+            "service_rate": 0.5
+        },
+        {
+            "id": "WC-Sul-L1-1",
+            "name": "Restrooms South Level 1 #1",
+            "poi_type": "restroom",
+            "num_servers": 6,
+            "service_rate": 0.5
+        },
+        {
+            "id": "Food-Sul-1",
+            "name": "Food Court South #1",
+            "poi_type": "food",
+            "num_servers": 4,
+            "service_rate": 0.4
+        }
+    ]
+    
+    for poi_data in test_pois_data:
+        poi = POI(
+            id=poi_data["id"],
+            name=poi_data["name"],
+            poi_type=poi_data["poi_type"],
+            num_servers=poi_data["num_servers"],
+            service_rate=poi_data["service_rate"]
+        )
+        test_db_session.add(poi)
+    
+    await test_db_session.commit()
+    return test_pois_data
+
+@pytest.fixture(scope="function")
+async def seed_queue_states(test_db_session):
+    """Popula o banco de dados com estados de fila de teste."""
+    test_states = [
+        {
+            "poi_id": "WC-Norte-L0-1",
+            "arrival_rate": 2.5,
+            "current_wait_minutes": 5.2,
+            "confidence_lower": 4.0,
+            "confidence_upper": 6.5,
+            "sample_count": 50,
+            "status": "medium"
+        },
+        {
+            "poi_id": "WC-Sul-L1-1",
+            "arrival_rate": 1.8,
+            "current_wait_minutes": 3.1,
+            "confidence_lower": 2.5,
+            "confidence_upper": 3.8,
+            "sample_count": 40,
+            "status": "low"
+        },
+        {
+            "poi_id": "Food-Sul-1",
+            "arrival_rate": 3.2,
+            "current_wait_minutes": 8.7,
+            "confidence_lower": 7.0,
+            "confidence_upper": 10.5,
+            "sample_count": 30,
+            "status": "high"
+        }
+    ]
+    
+    for state_data in test_states:
+        state = QueueState(
+            poi_id=state_data["poi_id"],
+            arrival_rate=state_data["arrival_rate"],
+            current_wait_minutes=state_data["current_wait_minutes"],
+            confidence_lower=state_data["confidence_lower"],
+            confidence_upper=state_data["confidence_upper"],
+            sample_count=state_data["sample_count"],
+            status=state_data["status"],
+            last_updated=datetime.now(timezone.utc)
+        )
+        test_db_session.add(state)
+    
+    await test_db_session.commit()
+    return test_states
 
 @pytest.fixture
 def sample_pois():
-    """Sample POI data"""
+    """Fornece dados de POI de exemplo para teste."""
     return [
         {
             "id": "WC-Norte-L0-1",
@@ -102,70 +190,72 @@ def sample_pois():
             "name": "Food Court South #1",
             "type": "food",
             "num_servers": 4,
-            "service_rate": 0.3
+            "service_rate": 0.4
         },
         {
             "id": "Store-Este-1",
-            "name": "Official Store East",
+            "name": "Store East #1",
             "type": "store",
             "num_servers": 2,
-            "service_rate": 0.2
+            "service_rate": 0.3
+        }
+    ]
+
+@pytest.fixture
+def mock_map_service_response():
+    """Fornece resposta mockada do MapService."""
+    return [
+        {
+            "id": "WC-Norte-L0-1",
+            "name": "Restrooms North Level 0 #1",
+            "type": "restroom",
+            "num_servers": 8,
+            "service_rate": 0.5,
+            "location": {"lat": 40.7128, "lng": -74.0060}
+        },
+        {
+            "id": "Food-Sul-1",
+            "name": "Food Court South #1",
+            "type": "food",
+            "num_servers": 4,
+            "service_rate": 0.4,
+            "location": {"lat": 40.7128, "lng": -74.0060}
         }
     ]
 
 @pytest.fixture
 def sample_queue_events():
-    """Sample queue events"""
-    from datetime import datetime, timezone, timedelta
-    now = datetime.now(timezone.utc)
-    
+    """Fornece eventos de fila de exemplo para teste."""
+    base_time = datetime.now(timezone.utc)
     return [
         {
             "poi_id": "WC-Norte-L0-1",
             "event_type": "entry",
-            "count": 1,
-            "camera_id": "cam-01",
-            "timestamp": now - timedelta(minutes=5)
+            "count": 2,
+            "camera_id": "cam-123",
+            "timestamp": base_time - timedelta(minutes=2)
         },
         {
             "poi_id": "WC-Norte-L0-1",
             "event_type": "exit",
             "count": 1,
-            "camera_id": "cam-01",
-            "timestamp": now - timedelta(minutes=1)
+            "camera_id": "cam-123",
+            "timestamp": base_time - timedelta(minutes=1)
+        },
+        {
+            "poi_id": "WC-Sul-L1-1",
+            "event_type": "entry",
+            "count": 3,
+            "camera_id": "cam-456",
+            "timestamp": base_time - timedelta(minutes=3)
         }
     ]
 
-@pytest.fixture
-def mock_map_service_response(sample_pois):
-    """Mock response from MapService"""
-    return sample_pois[0:2]  # Return first two POIs
-
-@pytest_asyncio.fixture
-async def seed_pois(test_db_session, sample_pois):
-    """Seed database with POIs"""
-    from db.repositories import POIRepository
-    repo = POIRepository(test_db_session)
-    for poi in sample_pois:
-        await repo.insert_poi(poi)
-    await test_db_session.commit()
-    return sample_pois
-
-@pytest_asyncio.fixture
-async def seed_queue_states(test_db_session, seed_pois):
-    """Seed database with queue states"""
-    from db.repositories import WaitTimeRepository
-    repo = WaitTimeRepository(test_db_session)
-    
-    pois = seed_pois
-    for i, poi in enumerate(pois):
-        await repo.update_queue_state(
-            poi_id=poi['id'],
-            arrival_rate=1.0 + i,
-            wait_minutes=5.0 * (i + 1),
-            confidence_lower=4.0 * (i + 1),
-            confidence_upper=6.0 * (i + 1),
-            sample_count=10,
-            status="medium"
-        )
-    await test_db_session.commit()
+def pytest_configure(config):
+    """Registra marcadores personalizados."""
+    config.addinivalue_line(
+        "markers", "integration: marca testes de integração"
+    )
+    config.addinivalue_line(
+        "markers", "slow: marca testes lentos"
+    )

@@ -1,0 +1,30 @@
+[run]
+source = .
+omit =
+    tests/*
+    test_*.py
+    */__pycache__/*
+    .venv/*
+    venv/*
+    env/*
+    .env
+    *.pyc
+    conftest.py
+    setup.py
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    if self.debug
+    raise AssertionError
+    raise NotImplementedError
+    if 0:
+    if __name__ == .__main__.:
+    
+ignore_errors = True
+skip_empty = True
+
+[html]
+directory = coverage_html
+title = Ticket System Coverage Report
