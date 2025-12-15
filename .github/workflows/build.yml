@@ -10,6 +10,7 @@ jobs:
   test:
     name: Run Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     
     steps:
       - name: Checkout code
@@ -27,21 +28,28 @@ jobs:
           pip install -r requirements.txt
           pip install httpx-sse
       
-      - name: Run tests
+      - name: Run tests with coverage
         env:
           TEST_DATABASE_URL: 'sqlite+aiosqlite:///:memory:'
           MAP_SERVICE_URL: 'http://test-map-service.mock'
           SECRET_KEY: 'test-secret-key-for-tests'
           LOG_LEVEL: 'WARNING'
         run: |
-          echo "Running tests..."
+          echo "Running tests with coverage..."
+          # Usando --cov=./ para cobertura de todo o projeto
           python -m pytest tests/ \
             --cov=./ \
-            --cov-report=xml \
-            --cov-report=html \
+            --cov-report=xml:coverage.xml \
+            --cov-report=html:htmlcov \
             -v \
             --disable-warnings \
             --asyncio-mode=auto
+          echo "Tests completed."
+      
+      - name: List generated coverage files
+        run: |
+          echo "Generated files:"
+          ls -la coverage.xml htmlcov/ 2>/dev/null || echo "Coverage files not found"
       
       - name: Upload coverage reports
         uses: actions/upload-artifact@v4
