@@ -27,49 +27,36 @@ jobs:
           pip install -r requirements.txt
           pip install httpx-sse
       
-      - name: Run tests with coverage
+      - name: Run tests and generate coverage
         env:
           TEST_DATABASE_URL: 'sqlite+aiosqlite:///:memory:'
           MAP_SERVICE_URL: 'http://test-map-service.mock'
           SECRET_KEY: 'test-secret-key-for-tests'
           LOG_LEVEL: 'WARNING'
         run: |
-          echo "Running tests..."
+          set -e  # Exit on any error
           
-          # Definir variável de ambiente para evitar problemas
-          export PYTEST_ADDOPTS=""
-          export COVERAGE_FILE=.coverage
-          
-          # Rodar testes SEM pytest-cov primeiro
+          echo "=== Step 1: Run tests without coverage ==="
           python -m pytest tests/ \
             -v \
             --asyncio-mode=auto \
             --tb=short \
             --disable-warnings
           
-          echo "Tests completed, now generating coverage..."
+          echo "=== Step 2: Run tests again for coverage data ==="
+          python -m coverage run --source=. -m pytest tests/ \
+            -q \
+            --asyncio-mode=auto
           
-          # Gerar cobertura SEPARADAMENTE usando coverage diretamente
-          python -m coverage run --source=. -m pytest tests/ -q --asyncio-mode=auto
-          
-          # Gerar relatórios
+          echo "=== Step 3: Generate coverage reports ==="
           python -m coverage xml
-          python -m coverage html --directory=htmlcov
+          python -m coverage html
           
-          # FECHAR explicitamente o coverage
-          python -c "import coverage; cov = coverage.Coverage(); cov.load(); cov.combine(); cov.save(); cov.stop()"
-          
-          echo "Coverage reports generated successfully"
-          
-          # Cleanup final forçado
+          echo "=== Step 4: Final cleanup ==="
+          # Limpar arquivos temporários
           rm -f .coverage .coverage.*
           
-          # Forçar término de qualquer processo python pendente
-          echo "Cleaning up..."
-          pkill -9 -f "python.*coverage" 2>/dev/null || true
-          pkill -9 -f "python.*pytest" 2>/dev/null || true
-          
-          echo "All done!"
+          echo "SUCCESS: All tests passed and coverage generated"
       
       - name: Debug - List processes
         run: |
