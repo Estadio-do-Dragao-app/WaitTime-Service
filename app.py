@@ -75,7 +75,7 @@ async def lifespan(app: FastAPI):
     try:
         await consumer_task
     except asyncio.CancelledError:
-        pass
+        logger.info("Consumer task cancelled successfully")
     
     await close_db()
     logger.info("Database connections closed")

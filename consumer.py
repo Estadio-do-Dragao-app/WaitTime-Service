@@ -302,7 +302,7 @@ class MQTTEventConsumer:
         }
         
         poi_type = type_map.get(parts[0], parts[0].title())
-        direction = direction_map.get(parts[1], parts[1].title()) if len(parts) > 1 else ''
+        direction = direction_map.get(parts[1], parts[1].title())  # len(parts) >= 2 guaranteed
         number = parts[-1] if len(parts) > 2 and parts[-1].isdigit() else '1'
         
         if poi_type == 'WC':
