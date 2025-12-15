@@ -28,38 +28,23 @@ jobs:
           pip install pytest pytest-asyncio==0.23.0 pytest-cov pytest-mock coverage aiosqlite httpx-sse
       
       - name: Run tests and generate coverage
+        id: tests
         env:
           TEST_DATABASE_URL: 'sqlite+aiosqlite:///:memory:'
           MAP_SERVICE_URL: 'http://test-map-service.mock'
           SECRET_KEY: 'test-secret-key-for-tests'
           LOG_LEVEL: 'WARNING'
         run: |
-          set -e  # Exit on any error
-          
-          echo "=== Running tests with coverage ==="
-          timeout 120 python -m pytest tests/ \
+          python -m pytest tests/ \
             --cov=. \
             --cov-report=xml \
             --cov-report=html \
             --tb=short \
             --disable-warnings \
-            -x || exit_code=$?
-          
-          if [ "${exit_code:-0}" -eq 124 ]; then
-            echo "ERROR: Tests timed out after 120 seconds"
-            exit 1
-          fi
-          
-          echo "SUCCESS: All tests passed and coverage generated"
-      
-      - name: Debug - List processes
-        run: |
-          echo "=== Process list ==="
-          ps aux | head -20
-          echo "=== Python processes ==="
-          ps aux | grep python || true
+            -v
       
       - name: Upload coverage reports
+        if: always() && hashFiles('coverage.xml') != ''
         uses: actions/upload-artifact@v4
         with:
           name: coverage-reports
