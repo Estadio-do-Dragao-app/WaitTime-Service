@@ -411,6 +411,263 @@ class TestProcessGateEvent:
             
             # Should not raise
             await consumer._process_gate_event(event_data)
+    
+    @pytest.mark.asyncio
+    async def test_process_gate_event_exit(self):
+        """Test processing gate exit event"""
+        with patch('consumer.mqtt.Client'), \
+             patch('consumer.asyncio.get_event_loop'):
+            from consumer import MQTTEventConsumer
+            
+            consumer = MQTTEventConsumer()
+            
+            event_data = {
+                'gate': 'B2',
+                'direction': 'exit'
+            }
+            
+            await consumer._process_gate_event(event_data)
+
+
+class TestProcessQueueEvent:
+    """Tests for _process_queue_event method"""
+    
+    @pytest.mark.asyncio
+    async def test_process_queue_event_not_running(self):
+        """Test that event is skipped when consumer not running"""
+        with patch('consumer.mqtt.Client'), \
+             patch('consumer.asyncio.get_event_loop'):
+            from consumer import MQTTEventConsumer
+            
+            consumer = MQTTEventConsumer()
+            consumer.running = False
+            
+            event_data = {
+                'location_type': 'BAR',
+                'location_id': 'bar_norte_1',
+                'queue_length': 10
+            }
+            
+            # Should return early without error
+            await consumer._process_queue_event(event_data)
+    
+    @pytest.mark.asyncio
+    async def test_process_queue_event_empty_facility_id(self):
+        """Test that event with empty facility_id is skipped"""
+        with patch('consumer.mqtt.Client'), \
+             patch('consumer.asyncio.get_event_loop'):
+            from consumer import MQTTEventConsumer
+            
+            consumer = MQTTEventConsumer()
+            consumer.running = True
+            
+            event_data = {
+                'location_type': 'BAR',
+                'location_id': '',
+                'queue_length': 10
+            }
+            
+            # Should return early without error
+            await consumer._process_queue_event(event_data)
+    
+    @pytest.mark.asyncio
+    async def test_process_queue_event_with_poi_found(self):
+        """Test processing event when POI exists in database"""
+        with patch('consumer.mqtt.Client'), \
+             patch('consumer.asyncio.get_event_loop'), \
+             patch('consumer.get_db') as mock_get_db:
+            from consumer import MQTTEventConsumer
+            
+            # Setup mocks
+            mock_session = AsyncMock()
+            mock_get_db.return_value.__aenter__ = AsyncMock(return_value=mock_session)
+            mock_get_db.return_value.__aexit__ = AsyncMock(return_value=None)
+            
+            mock_poi = MagicMock()
+            mock_poi.num_servers = 5
+            mock_poi.service_rate = 0.5
+            
+            with patch('consumer.POIRepository') as mock_poi_repo, \
+                 patch('consumer.WaitTimeRepository') as mock_wait_repo:
+                mock_poi_repo.return_value.get_poi_by_id = AsyncMock(return_value=mock_poi)
+                mock_wait_repo.return_value.get_queue_state_raw = AsyncMock(return_value=None)
+                mock_wait_repo.return_value.update_queue_state = AsyncMock()
+                
+                consumer = MQTTEventConsumer()
+                consumer.running = True
+                consumer.upstream_client = MagicMock()
+                
+                event_data = {
+                    'location_type': 'BAR',
+                    'location_id': 'bar_norte_1',
+                    'queue_length': 10,
+                    'capacity': 20
+                }
+                
+                await consumer._process_queue_event(event_data)
+    
+    @pytest.mark.asyncio
+    async def test_process_queue_event_poi_not_found_bar(self):
+        """Test processing BAR event when POI not in database"""
+        with patch('consumer.mqtt.Client'), \
+             patch('consumer.asyncio.get_event_loop'), \
+             patch('consumer.get_db') as mock_get_db:
+            from consumer import MQTTEventConsumer
+            
+            mock_session = AsyncMock()
+            mock_get_db.return_value.__aenter__ = AsyncMock(return_value=mock_session)
+            mock_get_db.return_value.__aexit__ = AsyncMock(return_value=None)
+            
+            with patch('consumer.POIRepository') as mock_poi_repo, \
+                 patch('consumer.WaitTimeRepository') as mock_wait_repo:
+                mock_poi_repo.return_value.get_poi_by_id = AsyncMock(return_value=None)
+                mock_wait_repo.return_value.get_queue_state_raw = AsyncMock(return_value=None)
+                mock_wait_repo.return_value.update_queue_state = AsyncMock()
+                
+                consumer = MQTTEventConsumer()
+                consumer.running = True
+                consumer.upstream_client = MagicMock()
+                
+                event_data = {
+                    'location_type': 'BAR',
+                    'location_id': 'bar_sul_1',
+                    'queue_length': 5
+                }
+                
+                await consumer._process_queue_event(event_data)
+                
+                # Should use BAR defaults (4 servers, 0.4 rate)
+                assert 'Food-Sul-1' in consumer.queue_models
+    
+    @pytest.mark.asyncio
+    async def test_process_queue_event_poi_not_found_toilet(self):
+        """Test processing toilet event when POI not in database"""
+        with patch('consumer.mqtt.Client'), \
+             patch('consumer.asyncio.get_event_loop'), \
+             patch('consumer.get_db') as mock_get_db:
+            from consumer import MQTTEventConsumer
+            
+            mock_session = AsyncMock()
+            mock_get_db.return_value.__aenter__ = AsyncMock(return_value=mock_session)
+            mock_get_db.return_value.__aexit__ = AsyncMock(return_value=None)
+            
+            with patch('consumer.POIRepository') as mock_poi_repo, \
+                 patch('consumer.WaitTimeRepository') as mock_wait_repo:
+                mock_poi_repo.return_value.get_poi_by_id = AsyncMock(return_value=None)
+                mock_wait_repo.return_value.get_queue_state_raw = AsyncMock(return_value=None)
+                mock_wait_repo.return_value.update_queue_state = AsyncMock()
+                
+                consumer = MQTTEventConsumer()
+                consumer.running = True
+                consumer.upstream_client = MagicMock()
+                
+                event_data = {
+                    'location_type': 'TOILET',
+                    'location_id': 'toilet_este_1',
+                    'queue_length': 8
+                }
+                
+                await consumer._process_queue_event(event_data)
+                
+                # Should use toilet defaults (8 servers, 0.5 rate)
+                assert 'WC-Este-L0-1' in consumer.queue_models
+    
+    @pytest.mark.asyncio
+    async def test_process_queue_event_db_error(self):
+        """Test processing event when database error occurs"""
+        with patch('consumer.mqtt.Client'), \
+             patch('consumer.asyncio.get_event_loop'), \
+             patch('consumer.get_db') as mock_get_db:
+            from consumer import MQTTEventConsumer
+            
+            mock_get_db.return_value.__aenter__ = AsyncMock(side_effect=Exception("DB Error"))
+            mock_get_db.return_value.__aexit__ = AsyncMock(return_value=None)
+            
+            consumer = MQTTEventConsumer()
+            consumer.running = True
+            
+            event_data = {
+                'location_type': 'BAR',
+                'location_id': 'bar_norte_1',
+                'queue_length': 10
+            }
+            
+            # Should handle error gracefully
+            await consumer._process_queue_event(event_data)
+            
+            assert consumer.stats['errors'] == 1
+    
+    @pytest.mark.asyncio
+    async def test_process_queue_event_with_previous_state(self):
+        """Test processing event with previous state for comparison"""
+        with patch('consumer.mqtt.Client'), \
+             patch('consumer.asyncio.get_event_loop'), \
+             patch('consumer.get_db') as mock_get_db:
+            from consumer import MQTTEventConsumer
+            
+            mock_session = AsyncMock()
+            mock_get_db.return_value.__aenter__ = AsyncMock(return_value=mock_session)
+            mock_get_db.return_value.__aexit__ = AsyncMock(return_value=None)
+            
+            with patch('consumer.POIRepository') as mock_poi_repo, \
+                 patch('consumer.WaitTimeRepository') as mock_wait_repo:
+                mock_poi_repo.return_value.get_poi_by_id = AsyncMock(return_value=None)
+                mock_wait_repo.return_value.get_queue_state_raw = AsyncMock(return_value={'wait_minutes': 5.0})
+                mock_wait_repo.return_value.update_queue_state = AsyncMock()
+                
+                consumer = MQTTEventConsumer()
+                consumer.running = True
+                consumer.upstream_client = MagicMock()
+                
+                event_data = {
+                    'location_type': 'BAR',
+                    'location_id': 'bar_norte_1',
+                    'queue_length': 10
+                }
+                
+                await consumer._process_queue_event(event_data)
+
+
+class TestStopMethod:
+    """Tests for stop method"""
+    
+    @pytest.mark.asyncio
+    async def test_stop_sets_running_false(self):
+        """Test that stop() sets running to False"""
+        with patch('consumer.mqtt.Client') as mock_mqtt, \
+             patch('consumer.asyncio.get_event_loop'):
+            from consumer import MQTTEventConsumer
+            
+            consumer = MQTTEventConsumer()
+            consumer.running = True
+            
+            # Mock the clients
+            consumer.downstream_client = MagicMock()
+            consumer.upstream_client = MagicMock()
+            
+            await consumer.stop()
+            
+            assert consumer.running is False
+            consumer.downstream_client.loop_stop.assert_called_once()
+            consumer.upstream_client.loop_stop.assert_called_once()
+
+
+class TestMessageExceptionHandling:
+    """Tests for exception handling in message callback"""
+    
+    def test_message_callback_exception(self):
+        """Test that exceptions in message callback are handled"""
+        with patch('consumer.mqtt.Client'), \
+             patch('consumer.asyncio.get_event_loop'):
+            from consumer import MQTTEventConsumer
+            
+            consumer = MQTTEventConsumer()
+            
+            mock_msg = MagicMock()
+            mock_msg.payload.decode.side_effect = Exception("Decode error")
+            
+            # Should not raise
+            consumer._on_downstream_message(None, None, mock_msg)
 
 
 class TestEventConsumerAlias:
@@ -421,3 +678,4 @@ class TestEventConsumerAlias:
         from consumer import EventConsumer, MQTTEventConsumer
         
         assert EventConsumer is MQTTEventConsumer
+
