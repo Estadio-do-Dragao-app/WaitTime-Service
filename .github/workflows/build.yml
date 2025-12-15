@@ -44,6 +44,13 @@ jobs:
           
           echo "Tests completed successfully"
       
+      - name: Debug - Check for hanging processes
+        run: |
+          echo "=== Checking for running processes ==="
+          ps aux | grep -E "(python|pytest|coverage)" || true
+          echo "=== Checking file descriptors ==="
+          lsof -p $$ 2>/dev/null || true
+
       - name: Generate coverage report
         if: success()
         env:
