@@ -74,7 +74,7 @@ async def lifespan(app: FastAPI):
     consumer_task.cancel()
     try:
         await consumer_task
-    except asyncio.CancelledError:
+    except asyncio.CancelledError:  # NOSONAR - intentional during shutdown
         logger.info("Consumer task cancelled successfully")
     
     await close_db()
