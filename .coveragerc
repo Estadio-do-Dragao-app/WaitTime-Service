@@ -1,5 +1,6 @@
 [run]
 source = .
+concurrency = thread
 omit =
     tests/*
     test_*.py

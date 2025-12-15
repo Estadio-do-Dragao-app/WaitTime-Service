@@ -33,7 +33,7 @@ TestingSessionLocal = async_sessionmaker(
     expire_on_commit=False
 )
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, AsyncMock
 
 @pytest.fixture(scope="session")
 def event_loop():
@@ -50,8 +50,8 @@ def mock_app_dependencies():
     production DB/Service connection attempts during testing.
     Autouse ensures this runs for the entire session.
     """
-    with patch("app.init_db", new_callable=MagicMock) as mock_init, \
-         patch("app.close_db", new_callable=MagicMock) as mock_close, \
+    with patch("app.init_db", new_callable=AsyncMock) as mock_init, \
+         patch("app.close_db", new_callable=AsyncMock) as mock_close, \
          patch("app.MapServiceClient", new_callable=MagicMock) as mock_map_service, \
          patch("app.EventConsumer", new_callable=MagicMock) as mock_consumer:
         
@@ -61,12 +61,12 @@ def mock_app_dependencies():
         
         # Mock MapService fetch_pois to return empty list or sample data to avoid error logs
         mock_map_instance = mock_map_service.return_value
-        mock_map_instance.fetch_pois.return_value = []
+        mock_map_instance.fetch_pois = AsyncMock(return_value=[])
         
         # Mock EventConsumer start/stop
         mock_consumer_instance = mock_consumer.return_value
-        mock_consumer_instance.start.return_value = None
-        mock_consumer_instance.stop.return_value = None
+        mock_consumer_instance.start = AsyncMock(return_value=None)
+        mock_consumer_instance.stop = AsyncMock(return_value=None)
         mock_consumer_instance.running = True
         mock_consumer_instance.smoothers = {}
         mock_consumer_instance.queue_models = {}
