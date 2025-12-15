@@ -25,33 +25,44 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install httpx-sse pytest pytest-asyncio pytest-cov pytest-mock httpx
+          pip install httpx-sse
       
-      - name: Run tests with coverage and timeout
+      - name: Run tests with coverage (fast mode)
         env:
           TEST_DATABASE_URL: 'sqlite+aiosqlite:///:memory:'
           MAP_SERVICE_URL: 'http://test-map-service.mock'
           SECRET_KEY: 'test-secret-key-for-tests'
           LOG_LEVEL: 'WARNING'
         run: |
-          echo "Running tests with coverage..."
-          # Timeout de 5 minutos para evitar ficar preso
-          timeout 300 python -m pytest tests/ \
-            --cov=. \
-            --cov-report=xml \
+          echo "Running tests..."
+          # Rodar testes SEM cobertura primeiro para ver se trava
+          python -m pytest tests/ \
             -v \
             --tb=short \
             --asyncio-mode=auto \
             --strict-markers
           
-          echo "Coverage completed, checking for zombie processes..."
-          
-      - name: Cleanup any remaining processes
+          echo "Tests completed successfully"
+      
+      - name: Generate coverage report
+        if: success()
+        env:
+          TEST_DATABASE_URL: 'sqlite+aiosqlite:///:memory:'
+          MAP_SERVICE_URL: 'http://test-map-service.mock'
+          SECRET_KEY: 'test-secret-key-for-tests'
+          LOG_LEVEL: 'WARNING'
         run: |
-          echo "Cleaning up processes..."
-          pkill -f python || true
-          pkill -f pytest || true
-          sleep 2
+          echo "Generating coverage report..."
+          # Gerar cobertura separadamente
+          python -m coverage run --source=. -m pytest tests/ \
+            --asyncio-mode=auto \
+            -q  # Modo quieto para cobertura
+          
+          python -m coverage xml
+          python -m coverage html
+          
+          echo "Coverage files generated:"
+          ls -la coverage.xml htmlcov/
       
       - name: Upload coverage reports
         uses: actions/upload-artifact@v4
@@ -59,6 +70,7 @@ jobs:
           name: coverage-reports
           path: |
             coverage.xml
+            htmlcov/
           retention-days: 7
 
   sonarqube:
@@ -76,6 +88,11 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: coverage-reports
+      
+      - name: Verify coverage files
+        run: |
+          echo "Verifying coverage files exist..."
+          ls -la coverage.xml htmlcov/
       
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v7.0.0
