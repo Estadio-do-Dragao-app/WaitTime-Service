@@ -36,6 +36,7 @@ jobs:
           LOG_LEVEL: 'WARNING'
         run: |
           python -m pytest tests/ \
+            --asyncio-mode=auto \
             --cov=. \
             --cov-report=xml \
             --cov-report=html \
