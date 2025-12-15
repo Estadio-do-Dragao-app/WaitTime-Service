@@ -27,7 +27,7 @@ jobs:
           pip install -r requirements.txt
           pip install httpx-sse
       
-      - name: Run tests with forced cleanup
+      - name: Run tests with coverage
         env:
           TEST_DATABASE_URL: 'sqlite+aiosqlite:///:memory:'
           MAP_SERVICE_URL: 'http://test-map-service.mock'
@@ -36,31 +36,40 @@ jobs:
         run: |
           echo "Running tests..."
           
-          # Limpar dados antigos
-          rm -f .coverage .coverage.* coverage.xml
-          rm -rf htmlcov
+          # Definir variável de ambiente para evitar problemas
+          export PYTEST_ADDOPTS=""
+          export COVERAGE_FILE=.coverage
           
-          # Rodar testes
+          # Rodar testes SEM pytest-cov primeiro
           python -m pytest tests/ \
             -v \
             --asyncio-mode=auto \
-            --tb=short
+            --tb=short \
+            --disable-warnings
           
-          echo "Tests passed, generating coverage..."
+          echo "Tests completed, now generating coverage..."
           
-          # Gerar cobertura SEPARADAMENTE
-          python -m coverage run --source=. -m pytest tests/ --quiet --asyncio-mode=auto
+          # Gerar cobertura SEPARADAMENTE usando coverage diretamente
+          python -m coverage run --source=. -m pytest tests/ -q --asyncio-mode=auto
+          
+          # Gerar relatórios
           python -m coverage xml
-          python -m coverage html
+          python -m coverage html --directory=htmlcov
           
-          echo "Coverage reports generated"
+          # FECHAR explicitamente o coverage
+          python -c "import coverage; cov = coverage.Coverage(); cov.load(); cov.combine(); cov.save(); cov.stop()"
           
-          # Cleanup final
-          rm -f .coverage
+          echo "Coverage reports generated successfully"
           
-          # Verificar arquivos
-          echo "Generated files:"
-          ls -la coverage.xml htmlcov/index.html
+          # Cleanup final forçado
+          rm -f .coverage .coverage.*
+          
+          # Forçar término de qualquer processo python pendente
+          echo "Cleaning up..."
+          pkill -9 -f "python.*coverage" 2>/dev/null || true
+          pkill -9 -f "python.*pytest" 2>/dev/null || true
+          
+          echo "All done!"
       
       - name: Debug - List processes
         run: |
