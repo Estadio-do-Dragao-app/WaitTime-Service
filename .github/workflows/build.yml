@@ -27,7 +27,7 @@ jobs:
           pip install -r requirements.txt
           pip install httpx-sse pytest pytest-asyncio pytest-cov pytest-mock httpx
       
-      - name: Run tests with coverage
+      - name: Run tests with coverage and timeout
         env:
           TEST_DATABASE_URL: 'sqlite+aiosqlite:///:memory:'
           MAP_SERVICE_URL: 'http://test-map-service.mock'
@@ -35,35 +35,25 @@ jobs:
           LOG_LEVEL: 'WARNING'
         run: |
           echo "Running tests with coverage..."
-          # Forçar timeout para garantir que não fique preso
+          # Timeout de 5 minutos para evitar ficar preso
           timeout 300 python -m pytest tests/ \
             --cov=. \
             --cov-report=xml \
             --cov-report=html \
             -v \
-            --disable-warnings \
+            --tb=short \
             --asyncio-mode=auto \
-            --tb=short
+            --strict-markers
           
-          # Matar qualquer processo Python que possa ter ficado rodando
+          echo "Coverage completed, checking for zombie processes..."
+          
+      - name: Cleanup any remaining processes
+        run: |
+          echo "Cleaning up processes..."
           pkill -f python || true
           pkill -f pytest || true
-      
-      - name: Debug - Check running processes after tests
-        run: |
-          echo "Processes after tests:"
-          ps aux | grep python || true
-          echo "Open ports:"
-          netstat -tulpn || ss -tulpn || true
-
-      - name: Force kill any remaining processes
-        run: |
-          # Matar todos processos Python
-          pkill -9 -f python || true
-          pkill -9 -f pytest || true
-          # Esperar um pouco
           sleep 2
-
+      
       - name: Upload coverage reports
         uses: actions/upload-artifact@v4
         with:
@@ -90,14 +80,14 @@ jobs:
           name: coverage-reports
       
       - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@v6
+        uses: SonarSource/sonarqube-scan-action@v7.0.0
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         with:
           args: >
-            -Dsonar.projectKey=Estadio-do-Dragao-app_WaitTime-Service  # ADICIONAR
-            -Dsonar.organization=estadio-do-dragao-app  # ADICIONAR (se for SonarCloud)
+            -Dsonar.projectKey=Estadio-do-Dragao-app_WaitTime-Service
+            -Dsonar.organization=estadio-do-dragao-app
             -Dsonar.sources=.
             -Dsonar.exclusions=tests/**,example_client.py,mqtt_configs.py,mosquitto.conf,docker-compose.yml,mosquitto.log,*.md
             -Dsonar.tests=tests
