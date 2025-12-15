@@ -25,7 +25,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install httpx-sse
+          pip install pytest pytest-asyncio==0.23.0 pytest-cov pytest-mock coverage aiosqlite httpx-sse
       
       - name: Run tests and generate coverage
         env:
@@ -36,25 +36,19 @@ jobs:
         run: |
           set -e  # Exit on any error
           
-          echo "=== Step 1: Run tests without coverage ==="
-          python -m pytest tests/ \
-            -v \
-            --asyncio-mode=auto \
+          echo "=== Running tests with coverage ==="
+          timeout 120 python -m pytest tests/ \
+            --cov=. \
+            --cov-report=xml \
+            --cov-report=html \
             --tb=short \
-            --disable-warnings
+            --disable-warnings \
+            -x || exit_code=$?
           
-          echo "=== Step 2: Run tests again for coverage data ==="
-          python -m coverage run --source=. -m pytest tests/ \
-            -q \
-            --asyncio-mode=auto
-          
-          echo "=== Step 3: Generate coverage reports ==="
-          python -m coverage xml
-          python -m coverage html
-          
-          echo "=== Step 4: Final cleanup ==="
-          # Limpar arquivos temporários
-          rm -f .coverage .coverage.*
+          if [ "${exit_code:-0}" -eq 124 ]; then
+            echo "ERROR: Tests timed out after 120 seconds"
+            exit 1
+          fi
           
           echo "SUCCESS: All tests passed and coverage generated"
       

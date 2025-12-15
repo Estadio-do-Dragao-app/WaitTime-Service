@@ -17,27 +17,33 @@ from app import app
 from sqlalchemy.pool import StaticPool
 from db.database import Base, get_db
 from db.models import POI, QueueState, CameraEvent
+from unittest.mock import MagicMock, patch, AsyncMock
 
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
-test_engine = create_async_engine(
-    TEST_DATABASE_URL,
-    echo=False,
-    pool_pre_ping=True,
-    poolclass=StaticPool,
-)
+# Create engine at module level but ensure proper cleanup
+test_engine = None
 
-TestingSessionLocal = async_sessionmaker(
-    test_engine,
-    class_=AsyncSession,
-    expire_on_commit=False
-)
+def get_test_engine():
+    global test_engine
+    if test_engine is None:
+        test_engine = create_async_engine(
+            TEST_DATABASE_URL,
+            echo=False,
+            pool_pre_ping=True,
+            poolclass=StaticPool,
+        )
+    return test_engine
 
-from unittest.mock import MagicMock, patch, AsyncMock
+def get_testing_session_local():
+    return async_sessionmaker(
+        get_test_engine(),
+        class_=AsyncSession,
+        expire_on_commit=False
+    )
 
-# NOTE: pytest-asyncio >= 0.21 manages event loops automatically.
-# No custom event_loop or event_loop_policy fixtures needed.
-# Previous custom fixtures were causing hangs in GitHub Actions CI.
+# Configure pytest-asyncio
+pytest_plugins = ('pytest_asyncio',)
 
 @pytest.fixture(scope="session", autouse=True)
 def mock_app_dependencies():
@@ -70,11 +76,33 @@ def mock_app_dependencies():
         yield
 
 
+@pytest.fixture(scope="session", autouse=True)
+def cleanup_engine():
+    """Cleanup async engine after all tests complete to prevent hanging."""
+    yield
+    # Dispose engine after session ends
+    global test_engine
+    if test_engine is not None:
+        import asyncio
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                loop.create_task(test_engine.dispose())
+            else:
+                loop.run_until_complete(test_engine.dispose())
+        except Exception:
+            pass  # Engine cleanup failed, but we're exiting anyway
+        test_engine = None
+
+
 @pytest_asyncio.fixture(scope="function")
 async def test_db_session():
     """Sessão de banco para cada teste (cria e remove tabelas)."""
+    engine = get_test_engine()
+    TestingSessionLocal = get_testing_session_local()
+    
     # Create tables for this test
-    async with test_engine.begin() as conn:
+    async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
     async with TestingSessionLocal() as session:
@@ -84,7 +112,7 @@ async def test_db_session():
             await session.close()
 
     # Drop tables after test
-    async with test_engine.begin() as conn:
+    async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
 
 @pytest_asyncio.fixture(scope="function")
