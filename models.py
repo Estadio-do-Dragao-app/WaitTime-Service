@@ -1,7 +1,7 @@
 """
 Pydantic schemas for Wait Time Service
 """
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from datetime import datetime
 from typing import Optional
 
@@ -19,8 +19,8 @@ class QueueEvent(BaseModel):
     camera_id: str = Field(..., description="Camera identifier")
     timestamp: datetime = Field(..., description="Event timestamp")
     
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "poi_id": "Restroom-A3",
                 "event_type": "entry",
@@ -29,6 +29,7 @@ class QueueEvent(BaseModel):
                 "timestamp": "2025-10-08T18:05:00Z"
             }
         }
+    )
 
 
 # ============ Outgoing Updates (to upstream broker) ============
@@ -80,8 +81,8 @@ class WaitTimeResponse(BaseModel):
     status: str
     timestamp: datetime
     
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "poi_id": "Restroom-A3",
                 "wait_minutes": 6.0,
@@ -91,6 +92,7 @@ class WaitTimeResponse(BaseModel):
                 "timestamp": "2025-10-08T18:06:00Z"
             }
         }
+    )
 
 
 class POIInfo(BaseModel):
@@ -101,8 +103,8 @@ class POIInfo(BaseModel):
     num_servers: int
     service_rate: float
     
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "id": "Restroom-A3",
                 "name": "Restrooms Section A Level 3",
@@ -111,6 +113,7 @@ class POIInfo(BaseModel):
                 "service_rate": 0.5
             }
         }
+    )
 
 
 # ============ Database Models ============
