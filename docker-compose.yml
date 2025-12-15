@@ -12,7 +12,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
-      - "5433:5432"  # Port 5433 to avoid conflicts with other services
+      - "5436:5432"  # Port 5436 to avoid conflicts
     volumes:
       - waittime-db-data:/var/lib/postgresql/data
     networks:
