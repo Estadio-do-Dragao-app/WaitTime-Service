@@ -19,7 +19,7 @@ try:
 except ImportError:
     aiomqtt = None  # Optional dependency
 
-from models import QueueEvent, WaitTimeUpdate
+from schemas import QueueEvent, WaitTimeUpdate
 from queueModel import QueueModel, ArrivalRateSmoother
 from db.database import get_db
 from db.repositories import WaitTimeRepository, POIRepository
@@ -27,7 +27,7 @@ from config.config import settings
 
 logger = logging.getLogger(__name__)
 
-class MQTTEventConsumer:
+class RobustMQTTConsumer:
     """
     Consumes queue events from DOWNSTREAM Mosquitto broker
     Publishes wait time updates to UPSTREAM Mosquitto broker
@@ -128,51 +128,48 @@ class MQTTEventConsumer:
             logger.error(f"UPSTREAM Connection failed: {rc}")
 
     def _on_downstream_message(self, client, userdata, msg):
-        """Handle incoming message - bridges to async loop"""
+        """Handle incoming message with robust error handling"""
         try:
-            payload = msg.payload.decode()
+            payload = msg.payload.decode('utf-8')
             topic = msg.topic
             
-            logger.debug(f"Received on {topic}: {payload[:50]}...")
-            self.stats['messages_received'] += 1
-            
-            # Parse JSON
+            # 1. Parse JSON with local error handling
             try:
                 event_data = json.loads(payload)
-            except json.JSONDecodeError:
-                logger.warning("Invalid JSON received")
+            except json.JSONDecodeError as e:
+                logger.error(f"Malformed JSON received on {topic}: {e}")
                 return
 
-            # Dispatch based on event type
-            event_type = event_data.get('event_type', '')
+            # 2. Strict Pydantic Validation
+            if topic == settings.DOWNSTREAM_TOPIC_QUEUES:
+                try:
+                    event = QueueEvent(**event_data)
+                    
+                    # Schedule async processing
+                    asyncio.run_coroutine_threadsafe(
+                        self._process_queue_event(event), 
+                        self.loop
+                    )
+                except Exception as e:
+                    logger.error(f"Pydantic Validation failed for QueueEvent: {e}")
+                    return
             
-            if event_type == 'queue_update':
-                # Schedule async processing in the main loop
-                asyncio.run_coroutine_threadsafe(
-                    self._process_queue_event(event_data), 
-                    self.loop
-                )
-            elif event_type == 'gate_passage':
-                 asyncio.run_coroutine_threadsafe(
-                    self._process_gate_event(event_data), 
-                    self.loop
-                )
+            elif topic == settings.DOWNSTREAM_TOPIC_ALL:
+                # Handle other events or just log
+                logger.debug(f"Received metadata event on {topic}")
 
         except Exception as e:
-            logger.error(f"Error in message callback: {e}")
+            logger.error(f"Critical error in MQTT callback: {e}")
 
-    # --- Async Processors (Logic copied from original) ---
+    # --- Async Processors ---
 
-    async def _process_queue_event(self, event_data: dict):
+    async def _process_queue_event(self, event: QueueEvent):
         """Process queue update and calculate wait time"""
-        # Ensure we are not running if stopped
         if not self.running: return
 
-        facility_type = event_data.get('location_type', '')
-        facility_id = event_data.get('location_id', '')
-        queue_length = event_data.get('queue_length', 0)
-        # Default capacity if 0 or missing
-        capacity = event_data.get('capacity', 10) or 10
+        facility_type = event.location_type
+        facility_id = event.location_id
+        queue_length = event.queue_length
         
         poi_id = self._convert_facility_id(facility_type, facility_id)
         if not poi_id:
@@ -296,4 +293,4 @@ class MQTTEventConsumer:
         return self.stats
 
 # Backwards compatibility
-EventConsumer = MQTTEventConsumer
+EventConsumer = RobustMQTTConsumer

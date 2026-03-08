@@ -7,8 +7,8 @@ from datetime import datetime, timezone, timedelta
 from typing import List, Optional
 import logging
 
-from db.models import POI, CameraEvent, QueueState
-from models import QueueEvent as QueueEventSchema, WaitTimeResponse, POIInfo
+from db.schemas import POI, CameraEvent, QueueState
+from schemas import QueueEvent as QueueEventSchema, WaitTimeResponse, POIInfo
 
 logger = logging.getLogger(__name__)
 

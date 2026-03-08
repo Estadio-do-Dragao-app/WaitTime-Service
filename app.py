@@ -13,10 +13,10 @@ from typing import List, Optional
 import asyncio
 import logging
 
-from models import WaitTimeResponse, POIInfo
+from schemas import WaitTimeResponse, POIInfo
 from db.database import get_db, init_db, close_db
 from db.repositories import WaitTimeRepository, POIRepository
-from consumer import EventConsumer
+from consumer import RobustMQTTConsumer as EventConsumer
 from services.map_service import MapServiceClient
 
 import os
