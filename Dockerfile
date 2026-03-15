@@ -1,28 +1,25 @@
-FROM python:3.11-slim
+# Autonomous Dockerfile for WaitTime-Service
+FROM python:3.10-slim
+
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+ENV PYTHONPATH=/app
 
 WORKDIR /app
 
-# Create non-root user for security
-RUN groupadd --gid 1000 appgroup && \
-    useradd --uid 1000 --gid appgroup --shell /bin/bash appuser
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy requirements
+COPY requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir -r /app/requirements.txt
 
-# Copy only necessary application files (not tests, .git, etc.)
-COPY app.py consumer.py models.py queueModel.py ./
-COPY config/ ./config/
-COPY db/ ./db/
-COPY services/ ./services/
+# Copy service code
+COPY . /app/
 
-# Change ownership and switch to non-root user
-RUN chown -R appuser:appgroup /app
-USER appuser
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')" || exit 1
-
-# Run the application
-CMD ["python", "-m", "uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8001"]
+# Default command
+CMD ["python", "app.py"]
