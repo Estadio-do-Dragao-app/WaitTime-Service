@@ -132,7 +132,9 @@ class RobustMQTTConsumer:
         try:
             payload = msg.payload.decode('utf-8')
             topic = msg.topic
-            
+            logger.info(f"[MQTT] Received message on topic: {topic}")
+            logger.debug(f"[MQTT] Payload: {payload}")
+
             # 1. Parse JSON with local error handling
             try:
                 event_data = json.loads(payload)
@@ -142,9 +144,9 @@ class RobustMQTTConsumer:
 
             # 2. Strict Pydantic Validation
             if topic == settings.DOWNSTREAM_TOPIC_QUEUES:
+                logger.info(f"[MQTT] Processing QueueEvent from topic: {topic}")
                 try:
                     event = QueueEvent(**event_data)
-                    
                     # Schedule async processing
                     asyncio.run_coroutine_threadsafe(
                         self._process_queue_event(event), 
@@ -153,7 +155,7 @@ class RobustMQTTConsumer:
                 except Exception as e:
                     logger.error(f"Pydantic Validation failed for QueueEvent: {e}")
                     return
-            
+
             elif topic == settings.DOWNSTREAM_TOPIC_ALL:
                 # Handle other events or just log
                 logger.debug(f"Received metadata event on {topic}")

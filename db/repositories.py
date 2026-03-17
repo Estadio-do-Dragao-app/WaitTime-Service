@@ -21,15 +21,25 @@ class POIRepository:
     
     async def insert_poi(self, poi_data: dict):
         """Insert or update POI configuration"""
-        poi = POI(
-            id=poi_data['id'],
-            name=poi_data['name'],
-            poi_type=poi_data['type'],
-            num_servers=poi_data['num_servers'],
-            service_rate=poi_data['service_rate']
-        )
-        await self.session.merge(poi)  # Insert or update
-        await self.session.commit()
+        try:
+            num_servers = poi_data.get('num_servers', 1)
+            if num_servers is None:
+                num_servers = 1
+            service_rate = poi_data.get('service_rate', 0.5)
+            if service_rate is None:
+                service_rate = 0.5
+            poi = POI(
+                id=poi_data['id'],
+                name=poi_data['name'],
+                poi_type=poi_data['type'],
+                num_servers=num_servers,
+                service_rate=service_rate
+            )
+            await self.session.merge(poi)  # Insert or update
+            await self.session.commit()
+        except Exception as e:
+            logger.error(f"Failed to insert POI {poi_data.get('id')}: {e}")
+            # Opcional: raise ou apenas logar
     
     async def get_poi_by_id(self, poi_id: str) -> Optional[POIInfo]:
         """Get POI by ID"""
