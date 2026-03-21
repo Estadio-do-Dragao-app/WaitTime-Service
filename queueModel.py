@@ -73,12 +73,13 @@ class QueueModel:
         # Traffic intensity (utilization)
         rho = arrival_rate / service_rate
         
-        # Overloaded system check
+        # Overloaded system check - use linear estimate as fallback
         if rho >= 0.95:
+            wait = max(sample_count + 1, 1) / service_rate
             return WaitTimeResult(
-                wait_minutes=float('inf'),
-                confidence_lower=15.0,  # arbitrary high values
-                confidence_upper=float('inf'),
+                wait_minutes=float(wait),
+                confidence_lower=wait * 0.8,
+                confidence_upper=wait * 1.2,
                 utilization=rho,
                 status='overloaded'
             )
@@ -128,10 +129,13 @@ class QueueModel:
         rho = arrival_rate / (k * service_rate)
         
         if rho >= 0.95:
+            # Fallback for overloaded system: Linear estimate (Current Queue / Aggregate Throughput)
+            throughput = k * service_rate
+            wait = max(sample_count + 1, 1) / throughput
             return WaitTimeResult(
-                wait_minutes=float('inf'),
-                confidence_lower=15.0,
-                confidence_upper=float('inf'),
+                wait_minutes=float(wait),
+                confidence_lower=wait * 0.8,
+                confidence_upper=wait * 1.5,
                 utilization=rho,
                 status='overloaded'
             )
