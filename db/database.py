@@ -50,6 +50,11 @@ async def get_db():
         finally:
             await session.close()
 
+async def get_db_session():
+    """Generator for FastAPI Depends"""
+    async with get_db() as session:
+        yield session
+
 
 async def init_db():
     """Initialize database - create all tables"""
