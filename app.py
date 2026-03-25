@@ -14,7 +14,7 @@ import asyncio
 import logging
 
 from schemas import WaitTimeResponse, POIInfo
-from db.database import get_db, init_db, close_db
+from db.database import get_db, init_db, close_db, get_db_session
 from db.repositories import WaitTimeRepository, POIRepository
 from consumer import RobustMQTTConsumer as EventConsumer
 from services.map_service import MapServiceClient
@@ -118,7 +118,7 @@ async def health_check():
 @app.get("/api/waittime", response_model=WaitTimeResponse)
 async def get_wait_time(
     poi: str = Query(..., description="POI identifier (e.g., Restroom-A3)"),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db_session)
 ):
     """
     Get current wait time for a specific POI
@@ -154,7 +154,7 @@ async def get_all_wait_times(
         None, 
         description="Filter by POI type (restroom, food, store)"
     ),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db_session)
 ):
     """
     Get wait times for all POIs, optionally filtered by type
@@ -171,7 +171,7 @@ async def get_all_wait_times(
 @app.get("/api/pois", response_model=List[POIInfo])
 async def get_pois(
     poi_type: Optional[str] = Query(None, description="Filter by type"),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db_session)
 ):
     """
     Get list of all POIs (Points of Interest)
@@ -188,7 +188,7 @@ async def get_pois(
 @app.get("/api/poi/{poi_id}", response_model=POIInfo)
 async def get_poi_details(
     poi_id: str,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db_session)
 ):
     """
     Get details for a specific POI
@@ -213,7 +213,7 @@ async def get_poi_details(
 @app.get("/debug/queue-state/{poi_id}")
 async def get_queue_state_debug(
     poi_id: str,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db_session)
 ):
     """
     Debug endpoint to see raw queue state including arrival rates

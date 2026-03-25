@@ -132,7 +132,9 @@ class RobustMQTTConsumer:
         try:
             payload = msg.payload.decode('utf-8')
             topic = msg.topic
-            
+            logger.info(f"[MQTT] Received message on topic: {topic}")
+            logger.debug(f"[MQTT] Payload: {payload}")
+
             # 1. Parse JSON with local error handling
             try:
                 event_data = json.loads(payload)
@@ -142,9 +144,9 @@ class RobustMQTTConsumer:
 
             # 2. Strict Pydantic Validation
             if topic == settings.DOWNSTREAM_TOPIC_QUEUES:
+                logger.info(f"[MQTT] Processing QueueEvent from topic: {topic}")
                 try:
                     event = QueueEvent(**event_data)
-                    
                     # Schedule async processing
                     asyncio.run_coroutine_threadsafe(
                         self._process_queue_event(event), 
@@ -153,7 +155,7 @@ class RobustMQTTConsumer:
                 except Exception as e:
                     logger.error(f"Pydantic Validation failed for QueueEvent: {e}")
                     return
-            
+
             elif topic == settings.DOWNSTREAM_TOPIC_ALL:
                 # Handle other events or just log
                 logger.debug(f"Received metadata event on {topic}")
@@ -230,6 +232,46 @@ class RobustMQTTConsumer:
                 
                 logger.info(f"Updated {poi_id}: wait={result.wait_minutes:.1f}min, queue={queue_length}")
                 
+                # RECONCILIATION: If this is POI-cantina, also update the other IDs used in the Fanapp/Graph
+                # This ensures "Cantina de Santiago" entries in the app show the simulation data.
+                if poi_id == "POI-cantina":
+                    # Alternate IDs matching the Graph used by the Fanapp
+                    alternate_map = {
+                        "POI-1870236080": "Cantina de Santiago - Universidade de Aveiro",
+                        "POI-652293975": "Cantina de Santiago"
+                    }
+                    for alt_id, alt_name in alternate_map.items():
+                        # 1. Ensure the POI exists in 'pois' table so it can be joined/filtered by type
+                        existing_poi = await poi_repo.get_poi_by_id(alt_id)
+                        if not existing_poi:
+                            await poi_repo.session.merge(POI(
+                                id=alt_id,
+                                name=alt_name,
+                                poi_type="food",
+                                num_servers=num_servers,
+                                service_rate=service_rate
+                            ))
+                            await poi_repo.session.commit()
+
+                        # 2. Publish and update queue state
+                        self._publish_waittime_update(
+                            poi_id=alt_id,
+                            wait_minutes=result.wait_minutes,
+                            confidence_lower=result.confidence_lower,
+                            confidence_upper=result.confidence_upper,
+                            status=result.status,
+                            queue_length=queue_length
+                        )
+                        await waittime_repo.update_queue_state(
+                            poi_id=alt_id,
+                            arrival_rate=smoothed_rate,
+                            wait_minutes=result.wait_minutes,
+                            confidence_lower=result.confidence_lower,
+                            confidence_upper=result.confidence_upper,
+                            sample_count=queue_length,
+                            status=result.status
+                        )
+                
         except Exception as e:
             logger.error(f"Error processing queue event: {e}")
             self.stats['errors'] += 1
@@ -242,6 +284,10 @@ class RobustMQTTConsumer:
     def _convert_facility_id(self, facility_type: str, facility_id: str):
         if not facility_id: return None
         
+        # If it's already a standard POI ID from graph, return as is
+        if facility_id.startswith('POI-'):
+            return facility_id
+
         parts = facility_id.lower().replace('-', '_').split('_')
         if len(parts) < 2: return facility_id
         
