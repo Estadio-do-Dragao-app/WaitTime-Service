@@ -9,3 +9,4 @@ python-dotenv==1.0.0
 aiomqtt==2.0.1
 httpx==0.25.0
 paho-mqtt==1.6.1
+pydantic-settings==2.1.0
