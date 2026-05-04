@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 def setup_audit_logger(name="audit_logger"):
     logger = logging.getLogger(name)
     logger.setLevel(logging.INFO)
+    logger.propagate = False
     
     # Avoid duplicate logs if already configured
     if not logger.handlers:

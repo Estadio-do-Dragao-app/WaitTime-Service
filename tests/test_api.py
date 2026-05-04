@@ -2,6 +2,7 @@ import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import patch, AsyncMock, MagicMock
 from datetime import datetime, timezone
+import json
 
 # Patch environment before importing app to avoid pydantic_settings
 import os
@@ -10,11 +11,17 @@ os.environ["POSTGRES_PASSWORD"] = "pass"
 os.environ["DOWNSTREAM_BROKER_HOST"] = "localhost"
 os.environ["UPSTREAM_BROKER_HOST"] = "localhost"
 
-from app import app
+from app import app, API_KEY
 from db.repositories import WaitTimeRepository
 from schemas import WaitTimeResponse
 
 client = TestClient(app)
+
+
+@pytest.fixture
+def api_key_headers():
+    """Fixture providing valid API key headers for authenticated endpoints"""
+    return {"X-API-Key": API_KEY}
 
 
 @pytest.fixture(autouse=True)
@@ -56,39 +63,51 @@ class TestHealth:
 
 
 class TestWaitTimeEndpoints:
-    def test_get_wait_time_success(self):
-        response = client.get("/api/waittime?poi=WC-Norte-L0-1")
+    def test_get_wait_time_success(self, api_key_headers):
+        response = client.get("/api/waittime?poi=WC-Norte-L0-1", headers=api_key_headers)
         assert response.status_code == 200
         data = response.json()
         assert data["poi_id"] == "test-poi"
         assert "wait_minutes" in data
 
-    def test_get_wait_time_missing_poi(self):
-        response = client.get("/api/waittime")  # missing query param
+    def test_get_wait_time_missing_poi(self, api_key_headers):
+        response = client.get("/api/waittime", headers=api_key_headers)  # missing query param
         assert response.status_code == 422  # validation error
 
-    def test_get_all_wait_times(self):
-        response = client.get("/api/waittime/all")
+    def test_get_wait_time_unauthorized(self):
+        response = client.get("/api/waittime?poi=WC-Norte-L0-1")  # no API key
+        assert response.status_code == 401
+
+    def test_get_wait_time_invalid_api_key(self):
+        response = client.get("/api/waittime?poi=WC-Norte-L0-1", headers={"X-API-Key": "invalid"})
+        assert response.status_code == 401
+
+    def test_get_all_wait_times(self, api_key_headers):
+        response = client.get("/api/waittime/all", headers=api_key_headers)
         assert response.status_code == 200
         assert isinstance(response.json(), list)
 
 
 class TestPOIEndpoints:
-    def test_get_pois(self):
-        response = client.get("/api/pois")
+    def test_get_pois(self, api_key_headers):
+        response = client.get("/api/pois", headers=api_key_headers)
         assert response.status_code == 200
         assert isinstance(response.json(), list)
 
-    def test_get_poi_by_id_not_found(self):
-        response = client.get("/api/poi/xyz")
+    def test_get_pois_unauthorized(self):
+        response = client.get("/api/pois")  # no API key
+        assert response.status_code == 401
+
+    def test_get_poi_by_id_not_found(self, api_key_headers):
+        response = client.get("/api/poi/xyz", headers=api_key_headers)
         assert response.status_code == 404
 
-    def test_get_poi_by_id_found(self, monkeypatch):
+    def test_get_poi_by_id_found(self, api_key_headers, monkeypatch):
         from schemas import POIInfo
         async def mock_get(*args, **kwargs):
             return POIInfo(id="xyz", name="X", poi_type="food", num_servers=4, service_rate=0.5)
         monkeypatch.setattr("db.repositories.POIRepository.get_poi_by_id", mock_get)
-        response = client.get("/api/poi/xyz")
+        response = client.get("/api/poi/xyz", headers=api_key_headers)
         assert response.status_code == 200
         assert response.json()["id"] == "xyz"
 
@@ -98,3 +117,72 @@ class TestDebugEndpoints:
         response = client.get("/debug/consumer-status")
         assert response.status_code == 200
         assert "status" in response.json()
+
+
+class TestPrivacyConsent:
+    def test_log_user_consent_success(self, api_key_headers):
+        """Test successful consent logging with valid API key"""
+        consent_data = {
+            "user_id": "user_123",
+            "action": "granted"
+        }
+        response = client.post(
+            "/api/v1/privacy/consent",
+            json=consent_data,
+            headers=api_key_headers
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "logged"
+        assert "timestamp" in data
+
+    def test_log_user_consent_denied(self, api_key_headers):
+        """Test consent logging for denied action"""
+        consent_data = {
+            "user_id": "user_456",
+            "action": "denied"
+        }
+        response = client.post(
+            "/api/v1/privacy/consent",
+            json=consent_data,
+            headers=api_key_headers
+        )
+        assert response.status_code == 200
+        assert response.json()["status"] == "logged"
+
+    def test_log_user_consent_unauthorized(self):
+        """Test consent endpoint without API key returns 401"""
+        consent_data = {
+            "user_id": "user_123",
+            "action": "granted"
+        }
+        response = client.post(
+            "/api/v1/privacy/consent",
+            json=consent_data
+        )
+        assert response.status_code == 401
+
+    def test_log_user_consent_invalid_api_key(self):
+        """Test consent endpoint with invalid API key returns 401"""
+        consent_data = {
+            "user_id": "user_123",
+            "action": "granted"
+        }
+        response = client.post(
+            "/api/v1/privacy/consent",
+            json=consent_data,
+            headers={"X-API-Key": "invalid_key"}
+        )
+        assert response.status_code == 401
+
+    def test_log_user_consent_missing_fields(self, api_key_headers):
+        """Test consent logging handles missing fields gracefully"""
+        consent_data = {}  # empty data
+        response = client.post(
+            "/api/v1/privacy/consent",
+            json=consent_data,
+            headers=api_key_headers
+        )
+        # Should succeed with defaults
+        assert response.status_code == 200
+        assert response.json()["status"] == "logged"

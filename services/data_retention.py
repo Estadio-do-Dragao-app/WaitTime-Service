@@ -17,6 +17,9 @@ class DataRetentionService:
         while self.running:
             try:
                 await self.cleanup_old_data()
+            except asyncio.CancelledError:
+                audit_logger.info("Data Retention Service cancelled")
+                raise
             except Exception as e:
                 audit_logger.error("Error during data retention cleanup: %s", e)
             await asyncio.sleep(self.check_interval_seconds)
@@ -31,7 +34,6 @@ class DataRetentionService:
             # Delete CameraEvents older than cutoff_time
             stmt = delete(CameraEvent).where(CameraEvent.timestamp < cutoff_time)
             result = await db.execute(stmt)
-            await db.commit()
             
             deleted_count = result.rowcount
             if deleted_count > 0:
