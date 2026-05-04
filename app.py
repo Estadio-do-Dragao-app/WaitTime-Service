@@ -4,7 +4,8 @@ Consumes queue_events from downstream broker
 Publishes waittime_updates to upstream broker
 Provides HTTP API for queries
 """
-from fastapi import FastAPI, Query, HTTPException, Depends
+from fastapi import FastAPI, Query, HTTPException, Depends, Security
+from fastapi.security import APIKeyHeader
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
 from contextlib import asynccontextmanager
@@ -18,6 +19,8 @@ from db.database import get_db, init_db, close_db, get_db_session
 from db.repositories import WaitTimeRepository, POIRepository
 from consumer import RobustMQTTConsumer as EventConsumer
 from services.map_service import MapServiceClient
+from services.data_retention import DataRetentionService
+from services.audit_logger import audit_logger
 
 import os
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
@@ -25,6 +28,19 @@ logger = logging.getLogger(__name__)
 
 # Global event consumer instance
 event_consumer: Optional[EventConsumer] = None
+retention_service: Optional[DataRetentionService] = None
+
+API_KEY_NAME = "X-API-Key"
+API_KEY = "dragao_secret_key_2026"
+api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=False)
+
+async def get_api_key(api_key_header: str = Security(api_key_header)):
+    if api_key_header == API_KEY:
+        return api_key_header
+    raise HTTPException(
+        status_code=401,
+        detail="Acesso não autorizado - API Key inválida ou ausente"
+    )
 
 
 @asynccontextmanager
@@ -60,6 +76,11 @@ async def lifespan(app: FastAPI):
     # Initialize event consumer (subscribes to broker)
     event_consumer = EventConsumer(window_minutes=5)
     
+    # Initialize and start data retention service
+    global retention_service
+    retention_service = DataRetentionService(retention_hours=24, check_interval_hours=1)
+    retention_task = asyncio.create_task(retention_service.start())
+    
     # Start consuming events in background
     consumer_task = asyncio.create_task(event_consumer.start())
     
@@ -71,11 +92,16 @@ async def lifespan(app: FastAPI):
     logger.info("Shutting down Wait Time Service...")
     if event_consumer:
         await event_consumer.stop()
+    if retention_service:
+        retention_service.stop()
+        
     consumer_task.cancel()
+    retention_task.cancel()
     try:
         await consumer_task
+        await retention_task
     except asyncio.CancelledError:  # NOSONAR - intentional during shutdown
-        logger.info("Consumer task cancelled successfully")
+        logger.info("Background tasks cancelled successfully")
     
     await close_db()
     logger.info("Database connections closed")
@@ -118,7 +144,8 @@ async def health_check():
 @app.get("/api/waittime", response_model=WaitTimeResponse)
 async def get_wait_time(
     poi: str = Query(..., description="POI identifier (e.g., Restroom-A3)"),
-    db: AsyncSession = Depends(get_db_session)
+    db: AsyncSession = Depends(get_db_session),
+    api_key: str = Depends(get_api_key)
 ):
     """
     Get current wait time for a specific POI
@@ -137,6 +164,8 @@ async def get_wait_time(
     """
     repo = WaitTimeRepository(db)
     
+    audit_logger.info(f"API Access: get_wait_time queried for {poi}")
+    
     wait_time = await repo.get_current_wait_time(poi)
     
     if not wait_time:
@@ -154,7 +183,8 @@ async def get_all_wait_times(
         None, 
         description="Filter by POI type (restroom, food, store)"
     ),
-    db: AsyncSession = Depends(get_db_session)
+    db: AsyncSession = Depends(get_db_session),
+    api_key: str = Depends(get_api_key)
 ):
     """
     Get wait times for all POIs, optionally filtered by type
@@ -162,6 +192,8 @@ async def get_all_wait_times(
     Example: GET /api/waittime/all?poi_type=restroom
     """
     repo = WaitTimeRepository(db)
+    
+    audit_logger.info("API Access: get_all_wait_times queried")
     
     wait_times = await repo.get_all_wait_times(poi_type=poi_type)
     
@@ -171,7 +203,8 @@ async def get_all_wait_times(
 @app.get("/api/pois", response_model=List[POIInfo])
 async def get_pois(
     poi_type: Optional[str] = Query(None, description="Filter by type"),
-    db: AsyncSession = Depends(get_db_session)
+    db: AsyncSession = Depends(get_db_session),
+    api_key: str = Depends(get_api_key)
 ):
     """
     Get list of all POIs (Points of Interest)
@@ -188,7 +221,8 @@ async def get_pois(
 @app.get("/api/poi/{poi_id}", response_model=POIInfo)
 async def get_poi_details(
     poi_id: str,
-    db: AsyncSession = Depends(get_db_session)
+    db: AsyncSession = Depends(get_db_session),
+    api_key: str = Depends(get_api_key)
 ):
     """
     Get details for a specific POI
@@ -206,6 +240,21 @@ async def get_poi_details(
         )
     
     return poi
+
+@app.post("/api/v1/privacy/consent")
+async def log_user_consent(
+    consent_data: dict,
+    api_key: str = Depends(get_api_key)
+):
+    """
+    Log user consent event for accountability
+    """
+    user_id = consent_data.get("user_id", "unknown")
+    action = consent_data.get("action", "granted")
+    
+    audit_logger.info(f"PRIVACY: User {user_id} {action} consent for GPS tracking")
+    
+    return {"status": "logged", "timestamp": datetime.now(timezone.utc).isoformat()}
 
 
 # ============ Admin/Debug Endpoints ============
