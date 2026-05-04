@@ -7,7 +7,7 @@ Replaced aiomqtt (async) with paho-mqtt (sync) for compatibility
 import asyncio
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Optional
 import json
 from collections import defaultdict
@@ -316,7 +316,9 @@ class RobustMQTTConsumer:
             "ci95": [round(confidence_lower, 1), round(confidence_upper, 1)],
             "status": status,
             "queue_length": queue_length,
-            "ts": datetime.now(timezone.utc).isoformat()
+            "ts": datetime.now(timezone.utc).isoformat(),
+            "priority": "NORMAL",
+            "expiry_time": (datetime.now(timezone.utc) + timedelta(minutes=5)).isoformat()
         }
         
         try:
