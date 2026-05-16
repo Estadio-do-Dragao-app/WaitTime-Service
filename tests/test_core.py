@@ -30,6 +30,28 @@ class TestQueueModel:
         assert result.wait_minutes > 0
         assert result.status == "overloaded"
 
+    def test_zero_arrival_rate_returns_low_status(self):
+        model = QueueModel(1)
+        result = model.calculate_wait_time(0.0, 3.0, 10)
+        assert result.wait_minutes == 0.0
+        assert result.status == "low"
+
+    def test_zero_service_rate_raises_value_error(self):
+        model = QueueModel(1)
+        with pytest.raises(ValueError, match="Service rate must be positive"):
+            model.calculate_wait_time(1.0, 0.0, 10)
+
+    def test_mmk_overloaded_returns_positive(self):
+        model = QueueModel(num_servers=2)
+        result = model.calculate_wait_time(10.0, 1.0, 10)  # rho > 0.95
+        assert result.wait_minutes > 0
+        assert result.status == "overloaded"
+
+    def test_mm1_medium_load(self):
+        model = QueueModel(num_servers=1)
+        result = model.calculate_wait_time(1.8, 3.0, 10)  # rho ~0.6
+        assert result.status == "medium"
+
 
 class TestArrivalRateSmoother:
     def test_first_update(self):
@@ -40,6 +62,15 @@ class TestArrivalRateSmoother:
         s = ArrivalRateSmoother(0.3)
         s.update(10.0)
         assert s.update(20.0) == 0.3 * 20 + 0.7 * 10
+
+    def test_get_rate_before_first_update_is_none(self):
+        s = ArrivalRateSmoother(0.3)
+        assert s.get_rate() is None
+
+    def test_get_rate_after_update_is_set(self):
+        s = ArrivalRateSmoother(0.3)
+        s.update(5.0)
+        assert s.get_rate() == 5.0
 
 
 class TestQueueEventValidation:

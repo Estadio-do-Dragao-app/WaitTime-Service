@@ -7,6 +7,7 @@ Provides HTTP API for queries
 from fastapi import FastAPI, Query, HTTPException, Depends, Security
 from fastapi.security import APIKeyHeader
 from fastapi.middleware.cors import CORSMiddleware
+from prometheus_fastapi_instrumentator import Instrumentator
 from sqlalchemy.ext.asyncio import AsyncSession
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
@@ -44,6 +45,25 @@ async def get_api_key(api_key_header: str = Security(api_key_header)):
     )
 
 
+async def _seed_pois_from_map_service():
+    """Fetch POI configurations from MapService and persist them to the database"""
+    try:
+        map_client = MapServiceClient()
+        logger.info("Fetching POI configurations from MapService...")
+        pois = await map_client.fetch_pois()
+        
+        async with get_db() as db:
+            poi_repo = POIRepository(db)
+            for poi_data in pois:
+                await poi_repo.insert_poi(poi_data)
+        
+        logger.info(f"Loaded {len(pois)} POIs from MapService")
+        
+    except Exception as e:
+        logger.error(f"Failed to fetch POIs from MapService: {e}")
+        logger.warning("Starting service without POI data - will retry on first events")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Startup and shutdown logic"""
@@ -56,23 +76,7 @@ async def lifespan(app: FastAPI):
     await init_db()
     logger.info("Database initialized")
     
-    # Fetch POI configurations from MapService
-    try:
-        map_client = MapServiceClient()
-        logger.info("Fetching POI configurations from MapService...")
-        pois = await map_client.fetch_pois()
-        
-        # Store POIs in database
-        async with get_db() as db:
-            poi_repo = POIRepository(db)
-            for poi_data in pois:
-                await poi_repo.insert_poi(poi_data)
-        
-        logger.info(f"Loaded {len(pois)} POIs from MapService")
-        
-    except Exception as e:
-        logger.error(f"Failed to fetch POIs from MapService: {e}")
-        logger.warning("Starting service without POI data - will retry on first events")
+    await _seed_pois_from_map_service()
     
     # Initialize event consumer (subscribes to broker)
     event_consumer = EventConsumer(window_minutes=5)
@@ -110,7 +114,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Wait Time Service",
-    description="Calculates and publishes queue wait times for stadium POIs",
+    description="Calculates and publishes queue wait times for campus POIs",
     version="1.0.0",
     lifespan=lifespan
 )
@@ -123,6 +127,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# Prometheus Monitoring
+Instrumentator().instrument(app).expose(app)
 
 
 # ============ HTTP API Endpoints ============
