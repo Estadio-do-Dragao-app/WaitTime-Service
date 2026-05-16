@@ -71,8 +71,8 @@ class RobustMQTTConsumer:
             self.upstream_client.connect(settings.UPSTREAM_BROKER_HOST, settings.UPSTREAM_BROKER_PORT, 60)
             self.upstream_client.loop_start()
             logger.info("[UPSTREAM] Connected and loop started")
-        except Exception as e:
-            logger.error(f"[UPSTREAM] Failed to connect: {e}")
+        except Exception:
+            logger.exception("[UPSTREAM] Failed to connect")
         
         # Connect to DOWNSTREAM broker (for receiving events from simulator)
         while self.running:
@@ -85,8 +85,8 @@ class RobustMQTTConsumer:
                 while self.running:
                     await asyncio.sleep(1)
                     
-            except Exception as e:
-                logger.error(f"DOWNSTREAM connection error: {e}")
+            except Exception:
+                logger.exception("DOWNSTREAM connection error")
                 self.stats['errors'] += 1
                 if self.running:
                     logger.info("Reconnecting in 5 seconds...")
@@ -129,8 +129,8 @@ class RobustMQTTConsumer:
 
             try:
                 event_data = json.loads(payload)
-            except json.JSONDecodeError as e:
-                logger.error(f"Malformed JSON received on {topic}: {e}")
+            except json.JSONDecodeError:
+                logger.exception(f"Malformed JSON received on {topic}")
                 return
 
             if topic == settings.DOWNSTREAM_TOPIC_QUEUES:
@@ -141,15 +141,15 @@ class RobustMQTTConsumer:
                         self._process_queue_event(event), 
                         self.loop
                     )
-                except Exception as e:
-                    logger.error(f"Pydantic validation failed for QueueEvent: {e}")
+                except Exception:
+                    logger.exception("Pydantic validation failed for QueueEvent")
                     return
 
             elif topic == settings.DOWNSTREAM_TOPIC_ALL:
                 logger.debug(f"Received metadata event on {topic}")
 
-        except Exception as e:
-            logger.error(f"Critical error in MQTT callback: {e}")
+        except Exception:
+            logger.exception("Critical error in MQTT callback")
 
     # --- Async Processors ---
 
@@ -225,8 +225,8 @@ class RobustMQTTConsumer:
                         smoothed_rate, result, queue_length
                     )
                 
-        except Exception as e:
-            logger.error(f"Error processing queue event: {e}")
+        except Exception:
+            logger.exception("Error processing queue event")
             self.stats['errors'] += 1
 
     async def _handle_cantina_reconciliation(
@@ -319,8 +319,8 @@ class RobustMQTTConsumer:
             self.upstream_client.publish(topic, json.dumps(update))
             self.stats['messages_published'] += 1
             logger.info(f"[UPSTREAM] Published to topic: {topic} (wait={wait_minutes:.1f}min, queue={queue_length})")
-        except Exception as e:
-            logger.error(f"[UPSTREAM] Failed to publish: {e}")
+        except Exception:
+            logger.exception("[UPSTREAM] Failed to publish")
             self.stats['errors'] += 1
     
     def _is_significant_change(self, old_wait: Optional[float], new_wait: float) -> bool:

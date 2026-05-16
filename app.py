@@ -59,8 +59,8 @@ async def _seed_pois_from_map_service():
         
         logger.info(f"Loaded {len(pois)} POIs from MapService")
         
-    except Exception as e:
-        logger.error(f"Failed to fetch POIs from MapService: {e}")
+    except Exception:
+        logger.exception("Failed to fetch POIs from MapService")
         logger.warning("Starting service without POI data - will retry on first events")
 
 
