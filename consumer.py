@@ -2,27 +2,22 @@
 MQTT Event Consumer for Wait Time Service
 - Subscribes to DOWNSTREAM broker (receives events from simulator)
 - Publishes to UPSTREAM broker (sends wait times to clients)
-Replaced aiomqtt (async) with paho-mqtt (sync) for compatibility
 """
 import asyncio
 import json
 import logging
 from datetime import datetime, timezone, timedelta
 from typing import Optional
-import json
 from collections import defaultdict
 import threading
 
 import paho.mqtt.client as mqtt
-try:
-    import aiomqtt  # Used in some code paths
-except ImportError:
-    aiomqtt = None  # Optional dependency
 
 from schemas import QueueEvent, WaitTimeUpdate
 from queueModel import QueueModel, ArrivalRateSmoother
 from db.database import get_db
 from db.repositories import WaitTimeRepository, POIRepository
+from db.schemas import POI
 from config.config import settings
 
 logger = logging.getLogger(__name__)
@@ -39,10 +34,9 @@ class RobustMQTTConsumer:
         self.running = False
         self.loop = asyncio.get_event_loop()
         
-        # Three separate MQTT clients
+        # Two MQTT clients: one for receiving, one for sending
         self.downstream_client = mqtt.Client(client_id=f"waittime-downstream-{id(self)}")
         self.upstream_client = mqtt.Client(client_id=f"waittime-upstream-{id(self)}")
-        self.client_publisher = mqtt.Client(client_id=f"waittime-client-pub-{id(self)}")
         
         # Per-POI smoothers for arrival rates
         self.smoothers = defaultdict(lambda: ArrivalRateSmoother(alpha=0.3))
@@ -57,7 +51,6 @@ class RobustMQTTConsumer:
             'errors': 0
         }
 
-        # Force debug logging
         logger.setLevel(logging.DEBUG)
 
         # Configure callbacks
@@ -78,8 +71,8 @@ class RobustMQTTConsumer:
             self.upstream_client.connect(settings.UPSTREAM_BROKER_HOST, settings.UPSTREAM_BROKER_PORT, 60)
             self.upstream_client.loop_start()
             logger.info("[UPSTREAM] Connected and loop started")
-        except Exception as e:
-            logger.error(f"[UPSTREAM] Failed to connect: {e}")
+        except Exception:
+            logger.exception("[UPSTREAM] Failed to connect")
         
         # Connect to DOWNSTREAM broker (for receiving events from simulator)
         while self.running:
@@ -89,12 +82,11 @@ class RobustMQTTConsumer:
                 self.downstream_client.loop_start()
                 logger.info("[DOWNSTREAM] Connected and loop started")
                 
-                # Keep running
                 while self.running:
                     await asyncio.sleep(1)
                     
-            except Exception as e:
-                logger.error(f"DOWNSTREAM connection error: {e}")
+            except Exception:
+                logger.exception("DOWNSTREAM connection error")
                 self.stats['errors'] += 1
                 if self.running:
                     logger.info("Reconnecting in 5 seconds...")
@@ -135,39 +127,36 @@ class RobustMQTTConsumer:
             logger.info(f"[MQTT] Received message on topic: {topic}")
             logger.debug(f"[MQTT] Payload: {payload}")
 
-            # 1. Parse JSON with local error handling
             try:
                 event_data = json.loads(payload)
-            except json.JSONDecodeError as e:
-                logger.error(f"Malformed JSON received on {topic}: {e}")
+            except json.JSONDecodeError:
+                logger.exception(f"Malformed JSON received on {topic}")
                 return
 
-            # 2. Strict Pydantic Validation
             if topic == settings.DOWNSTREAM_TOPIC_QUEUES:
                 logger.info(f"[MQTT] Processing QueueEvent from topic: {topic}")
                 try:
-                    event = QueueEvent(**event_data)
-                    # Schedule async processing
+                    event = QueueEvent.model_validate(event_data)
                     asyncio.run_coroutine_threadsafe(
                         self._process_queue_event(event), 
                         self.loop
                     )
-                except Exception as e:
-                    logger.error(f"Pydantic Validation failed for QueueEvent: {e}")
+                except Exception:
+                    logger.exception("Pydantic validation failed for QueueEvent")
                     return
 
             elif topic == settings.DOWNSTREAM_TOPIC_ALL:
-                # Handle other events or just log
                 logger.debug(f"Received metadata event on {topic}")
 
-        except Exception as e:
-            logger.error(f"Critical error in MQTT callback: {e}")
+        except Exception:
+            logger.exception("Critical error in MQTT callback")
 
     # --- Async Processors ---
 
     async def _process_queue_event(self, event: QueueEvent):
         """Process queue update and calculate wait time"""
-        if not self.running: return
+        if not self.running:
+            return
 
         facility_type = event.location_type
         facility_id = event.location_id
@@ -184,11 +173,10 @@ class RobustMQTTConsumer:
                 
                 poi = await poi_repo.get_poi_by_id(poi_id)
                 
-                # Defaults if POI not found in DB
                 num_servers = poi.num_servers if poi else (4 if facility_type == 'BAR' else 8)
                 service_rate = poi.service_rate if poi else (0.4 if facility_type == 'BAR' else 0.5)
                 
-                # Arrival Rate Calculation
+                # Arrival rate calculation with EMA smoothing
                 arrival_rate = queue_length / (self.window_minutes or 1)
                 smoother = self.smoothers[poi_id]
                 smoothed_rate = smoother.update(arrival_rate)
@@ -204,7 +192,7 @@ class RobustMQTTConsumer:
                 )
                 
                 previous_state = await waittime_repo.get_queue_state_raw(poi_id)
-                significant_change = self._is_significant_change(
+                self._is_significant_change(
                     previous_state.get('wait_minutes') if previous_state else None,
                     result.wait_minutes
                 )
@@ -219,8 +207,6 @@ class RobustMQTTConsumer:
                     status=result.status
                 )
                 
-                
-                # Always publish to keep routing/fanapp updated
                 self._publish_waittime_update(
                     poi_id=poi_id,
                     wait_minutes=result.wait_minutes,
@@ -232,64 +218,74 @@ class RobustMQTTConsumer:
                 
                 logger.info(f"Updated {poi_id}: wait={result.wait_minutes:.1f}min, queue={queue_length}")
                 
-                # RECONCILIATION: If this is POI-cantina, also update the other IDs used in the Fanapp/Graph
-                # This ensures "Cantina de Santiago" entries in the app show the simulation data.
                 if poi_id == "POI-cantina":
-                    # Alternate IDs matching the Graph used by the Fanapp
-                    alternate_map = {
-                        "POI-1870236080": "Cantina de Santiago - Universidade de Aveiro",
-                        "POI-652293975": "Cantina de Santiago"
-                    }
-                    for alt_id, alt_name in alternate_map.items():
-                        # 1. Ensure the POI exists in 'pois' table so it can be joined/filtered by type
-                        existing_poi = await poi_repo.get_poi_by_id(alt_id)
-                        if not existing_poi:
-                            await poi_repo.session.merge(POI(
-                                id=alt_id,
-                                name=alt_name,
-                                poi_type="food",
-                                num_servers=num_servers,
-                                service_rate=service_rate
-                            ))
-                            await poi_repo.session.commit()
-
-                        # 2. Publish and update queue state
-                        self._publish_waittime_update(
-                            poi_id=alt_id,
-                            wait_minutes=result.wait_minutes,
-                            confidence_lower=result.confidence_lower,
-                            confidence_upper=result.confidence_upper,
-                            status=result.status,
-                            queue_length=queue_length
-                        )
-                        await waittime_repo.update_queue_state(
-                            poi_id=alt_id,
-                            arrival_rate=smoothed_rate,
-                            wait_minutes=result.wait_minutes,
-                            confidence_lower=result.confidence_lower,
-                            confidence_upper=result.confidence_upper,
-                            sample_count=queue_length,
-                            status=result.status
-                        )
+                    await self._handle_cantina_reconciliation(
+                        poi_repo, waittime_repo,
+                        num_servers, service_rate,
+                        smoothed_rate, result, queue_length
+                    )
                 
-        except Exception as e:
-            logger.error(f"Error processing queue event: {e}")
+        except Exception:
+            logger.exception("Error processing queue event")
             self.stats['errors'] += 1
 
-    async def _process_gate_event(self, event_data: dict):
-        gate_id = event_data.get('gate', '')
-        direction = event_data.get('direction', 'entry')
-        logger.debug(f"Gate event: {gate_id} - {direction}")
+    async def _handle_cantina_reconciliation(
+        self, poi_repo, waittime_repo,
+        num_servers, service_rate,
+        smoothed_rate, result, queue_length
+    ):
+        """
+        Propagate wait time from POI-cantina to alternate IDs used in the Fanapp graph.
+        Ensures entries for 'Cantina de Santiago' in the app reflect simulation data.
+        """
+        try:
+            alternate_map = {
+                "POI-1870236080": "Cantina de Santiago - Universidade de Aveiro",
+                "POI-652293975": "Cantina de Santiago"
+            }
+            for alt_id, alt_name in alternate_map.items():
+                existing_poi = await poi_repo.get_poi_by_id(alt_id)
+                if not existing_poi:
+                    await poi_repo.session.merge(POI(
+                        id=alt_id,
+                        name=alt_name,
+                        poi_type="food",
+                        num_servers=num_servers,
+                        service_rate=service_rate
+                    ))
+                    await poi_repo.session.commit()
+
+                self._publish_waittime_update(
+                    poi_id=alt_id,
+                    wait_minutes=result.wait_minutes,
+                    confidence_lower=result.confidence_lower,
+                    confidence_upper=result.confidence_upper,
+                    status=result.status,
+                    queue_length=queue_length
+                )
+                await waittime_repo.update_queue_state(
+                    poi_id=alt_id,
+                    arrival_rate=smoothed_rate,
+                    wait_minutes=result.wait_minutes,
+                    confidence_lower=result.confidence_lower,
+                    confidence_upper=result.confidence_upper,
+                    sample_count=queue_length,
+                    status=result.status
+                )
+        except Exception:
+            logger.exception("Error during cantina reconciliation")
 
     def _convert_facility_id(self, facility_type: str, facility_id: str):
-        if not facility_id: return None
+        if not facility_id:
+            return None
         
-        # If it's already a standard POI ID from graph, return as is
+        # Already a standard POI ID from the graph
         if facility_id.startswith('POI-'):
             return facility_id
 
         parts = facility_id.lower().replace('-', '_').split('_')
-        if len(parts) < 2: return facility_id
+        if len(parts) < 2:
+            return facility_id
         
         type_map = {'bar': 'Food', 'toilet': 'WC', 'wc': 'WC', 'restroom': 'WC'}
         direction_map = {
@@ -298,7 +294,7 @@ class RobustMQTTConsumer:
         }
         
         poi_type = type_map.get(parts[0], parts[0].title())
-        direction = direction_map.get(parts[1], parts[1].title())  # len(parts) >= 2 guaranteed
+        direction = direction_map.get(parts[1], parts[1].title())
         number = parts[-1] if len(parts) > 2 and parts[-1].isdigit() else '1'
         
         if poi_type == 'WC':
@@ -308,7 +304,7 @@ class RobustMQTTConsumer:
     def _publish_waittime_update(
         self, poi_id, wait_minutes, confidence_lower, confidence_upper, status, queue_length=0
     ):
-        """Publish via paho-mqtt (thread-safe method)"""
+        """Publish wait time update via paho-mqtt (thread-safe)"""
         update = {
             "type": "waittime",
             "poi": poi_id,
@@ -326,8 +322,8 @@ class RobustMQTTConsumer:
             self.upstream_client.publish(topic, json.dumps(update))
             self.stats['messages_published'] += 1
             logger.info(f"[UPSTREAM] Published to topic: {topic} (wait={wait_minutes:.1f}min, queue={queue_length})")
-        except Exception as e:
-            logger.error(f"[UPSTREAM] Failed to publish: {e}")
+        except Exception:
+            logger.exception("[UPSTREAM] Failed to publish")
             self.stats['errors'] += 1
     
     def _is_significant_change(self, old_wait: Optional[float], new_wait: float) -> bool:
@@ -340,5 +336,5 @@ class RobustMQTTConsumer:
     def get_stats(self) -> dict:
         return self.stats
 
-# Backwards compatibility
+# Backwards compatibility alias
 EventConsumer = RobustMQTTConsumer

@@ -3,7 +3,8 @@ Queue modeling using M/M/1 and M/M/k for wait time estimation
 Based on queueing theory principles from the project spec
 """
 import math
-from typing import Tuple, Optional
+from functools import lru_cache
+from typing import Optional
 from dataclasses import dataclass
 
 
@@ -35,16 +36,15 @@ class QueueModel:
     ) -> WaitTimeResult:
         """
         Calculate expected wait time using queueing theory
-        
+
         Args:
-            arrival_rate: λ (lambda) - arrivals per minute
-            service_rate: μ (mu) - service rate per minute per server
-            sample_count: number of observations (affects confidence)
+            arrival_rate: lambda - arrivals per minute
+            service_rate: mu - service rate per minute per server
+            sample_count: number of observations (affects confidence interval width)
             
         Returns:
             WaitTimeResult with wait time and confidence interval
         """
-        # Handle edge cases
         if arrival_rate <= 0:
             return WaitTimeResult(
                 wait_minutes=0.0,
@@ -70,10 +70,9 @@ class QueueModel:
     ) -> WaitTimeResult:
         """M/M/1 queue calculation (single server)"""
         
-        # Traffic intensity (utilization)
         rho = arrival_rate / service_rate
         
-        # Overloaded system check - use linear estimate as fallback
+        # Overloaded system: use linear estimate as fallback
         if rho >= 0.95:
             wait = max(sample_count + 1, 1) / service_rate
             return WaitTimeResult(
@@ -84,28 +83,20 @@ class QueueModel:
                 status='overloaded'
             )
         
-        # Average time in queue (Wq) - waiting before service
+        # Average time in queue (Wq) - waiting before service begins
         Wq = rho / (service_rate * (1 - rho))
         
         # Average time in system (W) - waiting + service
         W = Wq + (1 / service_rate)
         
-        # Calculate confidence interval based on sample size
-        # Using approximate formula: CI ≈ W ± z * (W / sqrt(n))
-        # For 95% CI, z ≈ 1.96
+        # 95% confidence interval: CI = W +/- z * (W / sqrt(n))
         z_score = 1.96
         margin = z_score * (W / math.sqrt(max(sample_count, 1)))
         
         ci_lower = max(0.0, W - margin)
         ci_upper = W + margin
         
-        # Determine status
-        if rho < 0.5:
-            status = 'low'
-        elif rho < 0.75:
-            status = 'medium'
-        else:
-            status = 'high'
+        status = self._get_status(rho)
         
         return WaitTimeResult(
             wait_minutes=W,
@@ -124,12 +115,10 @@ class QueueModel:
         """M/M/k queue calculation (multiple servers)"""
         
         k = self.num_servers
-        
-        # System utilization
         rho = arrival_rate / (k * service_rate)
         
         if rho >= 0.95:
-            # Fallback for overloaded system: Linear estimate (Current Queue / Aggregate Throughput)
+            # Fallback: linear estimate (Current Queue / Aggregate Throughput)
             throughput = k * service_rate
             wait = max(sample_count + 1, 1) / throughput
             return WaitTimeResult(
@@ -141,19 +130,14 @@ class QueueModel:
             )
         
         # Erlang C formula for probability of waiting
-        # This is a simplified approximation
-        a = arrival_rate / service_rate  # total traffic
+        a = arrival_rate / service_rate  # total traffic intensity
         
-        # P0 calculation (probability of 0 customers)
-        # Optimized with math.gamma for continuous or cached factorial if needed
-        # But for small k, simple loop is fine. Using lru_cache on a helper would be better for high k.
-        
-        sum_term = sum((a ** n) / self._get_factorial(n) for n in range(k))
-        last_term = (a ** k) / (self._get_factorial(k) * (1 - rho))
+        sum_term = sum(_factorial(n) and (a ** n) / _factorial(n) for n in range(k))
+        last_term = (a ** k) / (_factorial(k) * (1 - rho))
         P0 = 1 / (sum_term + last_term)
         
         # Probability of waiting (Erlang C)
-        C = ((a ** k) / self._get_factorial(k)) * (1 / (1 - rho)) * P0
+        C = ((a ** k) / _factorial(k)) * (1 / (1 - rho)) * P0
         
         # Average wait time in queue
         Wq = C / (k * service_rate - arrival_rate)
@@ -161,20 +145,14 @@ class QueueModel:
         # Average time in system
         W = Wq + (1 / service_rate)
         
-        # Confidence interval
+        # 95% confidence interval
         z_score = 1.96
         margin = z_score * (W / math.sqrt(max(sample_count, 1)))
         
         ci_lower = max(0.0, W - margin)
         ci_upper = W + margin
         
-        # Status based on utilization
-        if rho < 0.5:
-            status = 'low'
-        elif rho < 0.75:
-            status = 'medium'
-        else:
-            status = 'high'
+        status = self._get_status(rho)
         
         return WaitTimeResult(
             wait_minutes=W,
@@ -184,31 +162,38 @@ class QueueModel:
             status=status
         )
 
-    from functools import lru_cache
-
     @staticmethod
-    @lru_cache(maxsize=128)
-    def _get_factorial(n: int) -> int:
-        """Cached factorial for repetitive M/M/k calculations"""
-        return math.factorial(n)
+    def _get_status(rho: float) -> str:
+        """Determine congestion status from utilization rate"""
+        if rho < 0.5:
+            return 'low'
+        elif rho < 0.75:
+            return 'medium'
+        return 'high'
+
+
+@lru_cache(maxsize=128)
+def _factorial(n: int) -> int:
+    """Cached factorial for repetitive M/M/k calculations"""
+    return math.factorial(n)
 
 
 class ArrivalRateSmoother:
-    """Exponential Moving Average for smoothing arrival rates"""
+    """Exponential Moving Average (EMA) for smoothing arrival rates"""
     
     def __init__(self, alpha: float = 0.3):
         """
         Args:
-            alpha: Smoothing factor (0 < alpha < 1)
-                  Higher = more responsive to recent data
-                  Lower = more smooth, less reactive
+            alpha: Smoothing factor (0 < alpha < 1).
+                   Higher values = more responsive to recent data.
+                   Lower values = smoother, less reactive.
         """
         self.alpha = alpha
         self.current_rate = None
     
     def update(self, new_rate: float) -> float:
         """
-        Update smoothed arrival rate with new observation
+        Update smoothed arrival rate with a new observation.
         
         Args:
             new_rate: Latest arrival rate measurement
@@ -227,43 +212,5 @@ class ArrivalRateSmoother:
         return self.current_rate
     
     def get_rate(self) -> Optional[float]:
-        """Get current smoothed rate"""
+        """Get current smoothed rate (None if no observations yet)"""
         return self.current_rate
-
-
-# Example usage
-if __name__ == "__main__":
-    # Single server example (M/M/1)
-    model = QueueModel(num_servers=1)
-    
-    # 2 people/min arriving, 3 people/min service rate
-    result = model.calculate_wait_time(
-        arrival_rate=2.0,
-        service_rate=3.0,
-        sample_count=15
-    )
-    
-    print(f"Wait time: {result.wait_minutes:.2f} minutes")
-    print(f"CI 95%: [{result.confidence_lower:.2f}, {result.confidence_upper:.2f}]")
-    print(f"Utilization: {result.utilization:.2%}")
-    print(f"Status: {result.status}")
-    
-    # Multiple servers example (M/M/k)
-    model_multi = QueueModel(num_servers=3)
-    result_multi = model_multi.calculate_wait_time(
-        arrival_rate=8.0,
-        service_rate=3.0,
-        sample_count=20
-    )
-    
-    print(f"\nMulti-server wait time: {result_multi.wait_minutes:.2f} minutes")
-    print(f"Status: {result_multi.status}")
-    
-    # EMA smoother example
-    smoother = ArrivalRateSmoother(alpha=0.3)
-    rates = [2.0, 2.5, 3.0, 2.8, 2.3]
-    
-    print("\nSmoothing arrival rates:")
-    for rate in rates:
-        smoothed = smoother.update(rate)
-        print(f"Raw: {rate:.2f} → Smoothed: {smoothed:.2f}")
