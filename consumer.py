@@ -238,39 +238,42 @@ class RobustMQTTConsumer:
         Propagate wait time from POI-cantina to alternate IDs used in the Fanapp graph.
         Ensures entries for 'Cantina de Santiago' in the app reflect simulation data.
         """
-        alternate_map = {
-            "POI-1870236080": "Cantina de Santiago - Universidade de Aveiro",
-            "POI-652293975": "Cantina de Santiago"
-        }
-        for alt_id, alt_name in alternate_map.items():
-            existing_poi = await poi_repo.get_poi_by_id(alt_id)
-            if not existing_poi:
-                await poi_repo.session.merge(POI(
-                    id=alt_id,
-                    name=alt_name,
-                    poi_type="food",
-                    num_servers=num_servers,
-                    service_rate=service_rate
-                ))
-                await poi_repo.session.commit()
+        try:
+            alternate_map = {
+                "POI-1870236080": "Cantina de Santiago - Universidade de Aveiro",
+                "POI-652293975": "Cantina de Santiago"
+            }
+            for alt_id, alt_name in alternate_map.items():
+                existing_poi = await poi_repo.get_poi_by_id(alt_id)
+                if not existing_poi:
+                    await poi_repo.session.merge(POI(
+                        id=alt_id,
+                        name=alt_name,
+                        poi_type="food",
+                        num_servers=num_servers,
+                        service_rate=service_rate
+                    ))
+                    await poi_repo.session.commit()
 
-            self._publish_waittime_update(
-                poi_id=alt_id,
-                wait_minutes=result.wait_minutes,
-                confidence_lower=result.confidence_lower,
-                confidence_upper=result.confidence_upper,
-                status=result.status,
-                queue_length=queue_length
-            )
-            await waittime_repo.update_queue_state(
-                poi_id=alt_id,
-                arrival_rate=smoothed_rate,
-                wait_minutes=result.wait_minutes,
-                confidence_lower=result.confidence_lower,
-                confidence_upper=result.confidence_upper,
-                sample_count=queue_length,
-                status=result.status
-            )
+                self._publish_waittime_update(
+                    poi_id=alt_id,
+                    wait_minutes=result.wait_minutes,
+                    confidence_lower=result.confidence_lower,
+                    confidence_upper=result.confidence_upper,
+                    status=result.status,
+                    queue_length=queue_length
+                )
+                await waittime_repo.update_queue_state(
+                    poi_id=alt_id,
+                    arrival_rate=smoothed_rate,
+                    wait_minutes=result.wait_minutes,
+                    confidence_lower=result.confidence_lower,
+                    confidence_upper=result.confidence_upper,
+                    sample_count=queue_length,
+                    status=result.status
+                )
+        except Exception:
+            logger.exception("Error during cantina reconciliation")
 
     def _convert_facility_id(self, facility_type: str, facility_id: str):
         if not facility_id:

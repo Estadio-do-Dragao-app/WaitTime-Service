@@ -8,6 +8,14 @@ from schemas import QueueEvent
 
 class TestProcessQueueEvent:
     @pytest.mark.asyncio
+    async def test_process_queue_event_not_running(self):
+        with patch('consumer.mqtt.Client'), patch('consumer.asyncio.get_event_loop'):
+            consumer = RobustMQTTConsumer()
+            consumer.running = False
+            await consumer._process_queue_event(MagicMock())
+            # Should return immediately
+
+    @pytest.mark.asyncio
     async def test_process_queue_event_success(self):
         with patch('consumer.mqtt.Client'), patch('consumer.asyncio.get_event_loop'):
             consumer = RobustMQTTConsumer()
@@ -56,6 +64,53 @@ class TestProcessQueueEvent:
                 mock_repo_wait.update_queue_state.assert_called_once()
                 # Verify MQTT publish
                 assert consumer.upstream_client.publish.called
+
+    @pytest.mark.asyncio
+    async def test_start(self):
+        with patch('consumer.mqtt.Client'), patch('consumer.asyncio.get_event_loop'):
+            consumer = RobustMQTTConsumer()
+            
+            # Mock connect to succeed for upstream, then fail for downstream to break loop
+            consumer.upstream_client.connect = MagicMock()
+            consumer.downstream_client.connect = MagicMock(side_effect=[None, Exception("Stop loop")])
+            consumer.running = True
+            
+            # We need to mock asyncio.sleep to avoid waiting and to stop the loop
+            with patch('asyncio.sleep', side_effect=[None, None]) as mock_sleep:
+                # We'll make it stop after one iteration
+                def stop_running(*args, **kwargs):
+                    consumer.running = False
+                mock_sleep.side_effect = stop_running
+                
+                await consumer.start()
+                
+            assert consumer.upstream_client.connect.called
+            assert consumer.downstream_client.connect.called
+
+    def test_on_upstream_connect_failure(self):
+        with patch('consumer.mqtt.Client'), patch('consumer.asyncio.get_event_loop'):
+            consumer = RobustMQTTConsumer()
+            # rc != 0
+            consumer._on_upstream_connect(MagicMock(), None, None, 1)
+            # Should just log error
+
+    def test_on_downstream_message_exception(self):
+        with patch('consumer.mqtt.Client'), patch('consumer.asyncio.get_event_loop'):
+            consumer = RobustMQTTConsumer()
+            msg = MagicMock()
+            msg.payload.decode.side_effect = Exception("Decode error")
+            # Should catch and log
+            consumer._on_downstream_message(MagicMock(), None, msg)
+            
+    def test_on_downstream_message_pydantic_error(self):
+        with patch('consumer.mqtt.Client'), patch('consumer.asyncio.get_event_loop'):
+            consumer = RobustMQTTConsumer()
+            from config.config import settings
+            msg = MagicMock()
+            msg.topic = settings.DOWNSTREAM_TOPIC_QUEUES
+            msg.payload = b'{"malformed": "data"}'
+            # Should catch pydantic validation error and log
+            consumer._on_downstream_message(MagicMock(), None, msg)
 
     def test_get_stats(self):
         with patch('consumer.mqtt.Client'), patch('consumer.asyncio.get_event_loop'):
@@ -106,3 +161,20 @@ class TestProcessQueueEvent:
             assert mock_repo_poi.session.merge.call_count == 2
             assert mock_repo_wait.update_queue_state.call_count == 2
             assert consumer.upstream_client.publish.call_count == 2
+
+    @pytest.mark.asyncio
+    async def test_handle_cantina_reconciliation_error(self):
+        with patch('consumer.mqtt.Client'), patch('consumer.asyncio.get_event_loop'):
+            consumer = RobustMQTTConsumer()
+            
+            mock_repo_poi = AsyncMock()
+            mock_repo_poi.get_poi_by_id.side_effect = Exception("DB Error")
+            
+            mock_repo_wait = AsyncMock()
+            result = MagicMock()
+            
+            # Should catch exception and not crash
+            await consumer._handle_cantina_reconciliation(
+                mock_repo_poi, mock_repo_wait,
+                4, 0.5, 2.0, result, 10
+            )
