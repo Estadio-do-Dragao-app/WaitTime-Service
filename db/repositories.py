@@ -37,8 +37,8 @@ class POIRepository:
             )
             await self.session.merge(poi)  # Insert or update
             await self.session.commit()
-        except Exception as e:
-            logger.error(f"Failed to insert POI {poi_data.get('id')}: {e}")
+        except Exception:
+            logger.exception(f"Failed to insert POI {poi_data.get('id')}")
             # Opcional: raise ou apenas logar
     
     async def get_poi_by_id(self, poi_id: str) -> Optional[POIInfo]:
