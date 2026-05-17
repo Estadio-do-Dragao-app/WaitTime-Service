@@ -11,7 +11,7 @@ from prometheus_fastapi_instrumentator import Instrumentator
 from sqlalchemy.ext.asyncio import AsyncSession
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
-from typing import List, Optional
+from typing import List, Optional, Annotated
 import asyncio
 import logging
 
@@ -36,7 +36,7 @@ API_KEY_NAME = "X-API-Key"
 API_KEY = os.getenv("API_KEY", "dragao_secret_key_2026")  # Load from env, fallback for dev
 api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=False)
 
-async def get_api_key(api_key_header: str = Security(api_key_header)):
+def get_api_key(api_key_header: Annotated[str, Security(api_key_header)]):
     if api_key_header and secrets.compare_digest(api_key_header, API_KEY):
         return api_key_header
     raise HTTPException(
@@ -150,11 +150,11 @@ async def health_check():
     }
 
 
-@app.get("/api/waittime", response_model=WaitTimeResponse)
+@app.get("/api/waittime", response_model=WaitTimeResponse, responses={404: {"description": "POI not found"}})
 async def get_wait_time(
-    poi: str = Query(..., description="POI identifier (e.g., Restroom-A3)"),
-    db: AsyncSession = Depends(get_db_session),
-    api_key: str = Depends(get_api_key)
+    poi: Annotated[str, Query(description="POI identifier (e.g., Restroom-A3)")],
+    db: Annotated[AsyncSession, Depends(get_db_session)],
+    api_key: Annotated[str, Depends(get_api_key)]
 ):
     """
     Get current wait time for a specific POI
@@ -188,12 +188,11 @@ async def get_wait_time(
 
 @app.get("/api/waittime/all", response_model=List[WaitTimeResponse])
 async def get_all_wait_times(
-    poi_type: Optional[str] = Query(
-        None, 
+    db: Annotated[AsyncSession, Depends(get_db_session)],
+    api_key: Annotated[str, Depends(get_api_key)],
+    poi_type: Annotated[Optional[str], Query(
         description="Filter by POI type (restroom, food, store)"
-    ),
-    db: AsyncSession = Depends(get_db_session),
-    api_key: str = Depends(get_api_key)
+    )] = None
 ):
     """
     Get wait times for all POIs, optionally filtered by type
@@ -211,9 +210,9 @@ async def get_all_wait_times(
 
 @app.get("/api/pois", response_model=List[POIInfo])
 async def get_pois(
-    poi_type: Optional[str] = Query(None, description="Filter by type"),
-    db: AsyncSession = Depends(get_db_session),
-    api_key: str = Depends(get_api_key)
+    db: Annotated[AsyncSession, Depends(get_db_session)],
+    api_key: Annotated[str, Depends(get_api_key)],
+    poi_type: Annotated[Optional[str], Query(description="Filter by type")] = None
 ):
     """
     Get list of all POIs (Points of Interest)
@@ -227,11 +226,11 @@ async def get_pois(
     return pois
 
 
-@app.get("/api/poi/{poi_id}", response_model=POIInfo)
+@app.get("/api/poi/{poi_id}", response_model=POIInfo, responses={404: {"description": "POI not found"}})
 async def get_poi_details(
     poi_id: str,
-    db: AsyncSession = Depends(get_db_session),
-    api_key: str = Depends(get_api_key)
+    db: Annotated[AsyncSession, Depends(get_db_session)],
+    api_key: Annotated[str, Depends(get_api_key)]
 ):
     """
     Get details for a specific POI
@@ -253,7 +252,7 @@ async def get_poi_details(
 @app.post("/api/v1/privacy/consent")
 async def log_user_consent(
     consent_data: dict,
-    api_key: str = Depends(get_api_key)
+    api_key: Annotated[str, Depends(get_api_key)]
 ):
     """
     Log user consent event for accountability
@@ -268,10 +267,10 @@ async def log_user_consent(
 
 # ============ Admin/Debug Endpoints ============
 
-@app.get("/debug/queue-state/{poi_id}")
+@app.get("/debug/queue-state/{poi_id}", responses={404: {"description": "POI not found"}})
 async def get_queue_state_debug(
     poi_id: str,
-    db: AsyncSession = Depends(get_db_session)
+    db: Annotated[AsyncSession, Depends(get_db_session)]
 ):
     """
     Debug endpoint to see raw queue state including arrival rates
@@ -302,9 +301,10 @@ async def get_consumer_status():
 
 if __name__ == "__main__":
     import uvicorn
+    host = os.getenv("HOST", "127.0.0.1")
     uvicorn.run(
         "app:app",
-        host="0.0.0.0",
+        host=host,
         port=8001,
         reload=True,
         log_level="info"

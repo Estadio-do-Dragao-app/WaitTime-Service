@@ -62,7 +62,7 @@ class MapServiceClient:
                 return pois
                 
         except httpx.HTTPError as e:
-            logger.error(f"Failed to fetch POIs from MapService: {e}")
+            logger.exception("Failed to fetch POIs from MapService")
             raise RuntimeError(f"MapService unavailable: {e}")
     
     async def fetch_poi_by_id(self, poi_id: str) -> Dict:
@@ -87,8 +87,8 @@ class MapServiceClient:
                 
                 return poi
                 
-        except httpx.HTTPError as e:
-            logger.error(f"Failed to fetch POI {poi_id}: {e}")
+        except httpx.HTTPError:
+            logger.exception(f"Failed to fetch POI {poi_id}")
             raise RuntimeError(f"POI {poi_id} not found in MapService")
     
     async def health_check(self) -> bool:
