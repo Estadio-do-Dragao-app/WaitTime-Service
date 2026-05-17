@@ -14,34 +14,34 @@ class TestConvertFacilityId:
 
     def test_poi_prefix_passthrough(self):
         """POI- prefixed IDs should be returned unchanged"""
-        assert self.consumer._convert_facility_id("BAR", "POI-123") == "POI-123"
+        assert self.consumer._convert_facility_id("POI-123") == "POI-123"
 
     def test_empty_facility_id_returns_none(self):
-        assert self.consumer._convert_facility_id("BAR", "") is None
+        assert self.consumer._convert_facility_id("") is None
 
     def test_bar_norte_converts_to_food(self):
-        result = self.consumer._convert_facility_id("BAR", "bar_norte_1")
+        result = self.consumer._convert_facility_id("bar_norte_1")
         assert result == "Food-Norte-1"
 
     def test_toilet_sul_converts_to_wc(self):
-        result = self.consumer._convert_facility_id("WC", "toilet_sul_2")
+        result = self.consumer._convert_facility_id("toilet_sul_2")
         assert result == "WC-Sul-L0-2"
 
     def test_wc_este_converts(self):
-        result = self.consumer._convert_facility_id("WC", "wc_este_1")
+        result = self.consumer._convert_facility_id("wc_este_1")
         assert result == "WC-Este-L0-1"
 
     def test_restroom_north_converts_english(self):
-        result = self.consumer._convert_facility_id("WC", "restroom_north_3")
+        result = self.consumer._convert_facility_id("restroom_north_3")
         assert result == "WC-Norte-L0-3"
 
     def test_short_id_falls_through(self):
         """IDs with only one part should be returned as-is"""
-        result = self.consumer._convert_facility_id("BAR", "bar")
+        result = self.consumer._convert_facility_id("bar")
         assert result == "bar"
 
     def test_no_number_defaults_to_1(self):
-        result = self.consumer._convert_facility_id("BAR", "bar_norte")
+        result = self.consumer._convert_facility_id("bar_norte")
         assert result == "Food-Norte-1"
 
 

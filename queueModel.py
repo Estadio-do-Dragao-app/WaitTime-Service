@@ -83,23 +83,23 @@ class QueueModel:
                 status='overloaded'
             )
         
-        # Average time in queue (Wq) - waiting before service begins
-        Wq = rho / (service_rate * (1 - rho))
+        # Average time in queue (wq) - waiting before service begins
+        wq = rho / (service_rate * (1 - rho))
         
-        # Average time in system (W) - waiting + service
-        W = Wq + (1 / service_rate)
+        # Average time in system (w) - waiting + service
+        w = wq + (1 / service_rate)
         
-        # 95% confidence interval: CI = W +/- z * (W / sqrt(n))
+        # 95% confidence interval: CI = w +/- z * (w / sqrt(n))
         z_score = 1.96
-        margin = z_score * (W / math.sqrt(max(sample_count, 1)))
+        margin = z_score * (w / math.sqrt(max(sample_count, 1)))
         
-        ci_lower = max(0.0, W - margin)
-        ci_upper = W + margin
+        ci_lower = max(0.0, w - margin)
+        ci_upper = w + margin
         
         status = self._get_status(rho)
         
         return WaitTimeResult(
-            wait_minutes=W,
+            wait_minutes=w,
             confidence_lower=ci_lower,
             confidence_upper=ci_upper,
             utilization=rho,
@@ -140,22 +140,22 @@ class QueueModel:
         C = ((a ** k) / _factorial(k)) * (1 / (1 - rho)) * P0
         
         # Average wait time in queue
-        Wq = C / (k * service_rate - arrival_rate)
+        wq = C / (k * service_rate - arrival_rate)
         
         # Average time in system
-        W = Wq + (1 / service_rate)
+        w = wq + (1 / service_rate)
         
         # 95% confidence interval
         z_score = 1.96
-        margin = z_score * (W / math.sqrt(max(sample_count, 1)))
+        margin = z_score * (w / math.sqrt(max(sample_count, 1)))
         
-        ci_lower = max(0.0, W - margin)
-        ci_upper = W + margin
+        ci_lower = max(0.0, w - margin)
+        ci_upper = w + margin
         
         status = self._get_status(rho)
         
         return WaitTimeResult(
-            wait_minutes=W,
+            wait_minutes=w,
             confidence_lower=ci_lower,
             confidence_upper=ci_upper,
             utilization=rho,

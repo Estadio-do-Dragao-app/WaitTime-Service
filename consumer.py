@@ -99,6 +99,7 @@ class RobustMQTTConsumer:
         self.downstream_client.loop_stop()
         self.upstream_client.loop_stop()
         logger.info("MQTT Consumer stopped")
+        await asyncio.sleep(0)
 
     # --- Callbacks ---
 
@@ -162,7 +163,7 @@ class RobustMQTTConsumer:
         facility_id = event.location_id
         queue_length = event.queue_length
         
-        poi_id = self._convert_facility_id(facility_type, facility_id)
+        poi_id = self._convert_facility_id(facility_id)
         if not poi_id:
             return
         
@@ -173,8 +174,16 @@ class RobustMQTTConsumer:
                 
                 poi = await poi_repo.get_poi_by_id(poi_id)
                 
-                num_servers = poi.num_servers if poi else (4 if facility_type == 'BAR' else 8)
-                service_rate = poi.service_rate if poi else (0.4 if facility_type == 'BAR' else 0.5)
+                if poi:
+                    num_servers = poi.num_servers
+                    service_rate = poi.service_rate
+                else:
+                    if facility_type == 'BAR':
+                        num_servers = 4
+                        service_rate = 0.4
+                    else:
+                        num_servers = 8
+                        service_rate = 0.5
                 
                 # Arrival rate calculation with EMA smoothing
                 arrival_rate = queue_length / (self.window_minutes or 1)
@@ -275,7 +284,7 @@ class RobustMQTTConsumer:
         except Exception:
             logger.exception("Error during cantina reconciliation")
 
-    def _convert_facility_id(self, facility_type: str, facility_id: str):
+    def _convert_facility_id(self, facility_id: str):
         if not facility_id:
             return None
         
