@@ -87,7 +87,7 @@ class MapServiceClient:
                 
                 return poi
                 
-        except httpx.HTTPError as e:
+        except httpx.HTTPError:
             logger.exception(f"Failed to fetch POI {poi_id}")
             raise RuntimeError(f"POI {poi_id} not found in MapService")
     

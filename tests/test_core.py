@@ -125,3 +125,12 @@ class TestWaitTimeResponse:
         )
         assert resp.poi_id == "p1"
         assert resp.wait_minutes == 3.0
+
+
+class TestDatabaseContextManager:
+    @pytest.mark.asyncio
+    async def test_get_db_exception(self):
+        from db.database import get_db
+        with pytest.raises(Exception, match="Trigger DB Rollback"):
+            async with get_db() as session:
+                raise Exception("Trigger DB Rollback")

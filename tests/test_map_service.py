@@ -45,5 +45,13 @@ class TestMapServiceClient:
             assert await client.health_check() is True
         
         with patch('httpx.AsyncClient.get', side_effect=Exception()):
+            client = MagicMock()  # Keep it clean
             client = MapServiceClient()
             assert await client.health_check() is False
+
+    @pytest.mark.asyncio
+    async def test_fetch_poi_by_id_failure(self):
+        with patch('httpx.AsyncClient.get', side_effect=httpx.HTTPError("Connection error")):
+            client = MapServiceClient()
+            with pytest.raises(RuntimeError, match="POI POI-1 not found in MapService"):
+                await client.fetch_poi_by_id("POI-1")
