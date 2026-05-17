@@ -25,9 +25,9 @@ jobs:
       
       - name: Install dependencies
         run: |
-          python -m pip install pip==24.0 --only-binary :all:
-          pip install -r requirements.txt --only-binary :all:
-          pip install pytest==7.4.3 pytest-asyncio==0.21.1 pytest-cov==4.1.0 pytest-mock==3.12.0 coverage==7.3.2 aiosqlite==0.19.0 httpx-sse==0.4.0 --only-binary :all:
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest==7.4.3 pytest-asyncio==0.21.1 pytest-cov pytest-mock coverage aiosqlite httpx-sse
       
       - name: Run tests and generate coverage
         id: tests
