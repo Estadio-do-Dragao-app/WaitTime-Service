@@ -16,10 +16,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Copy requirements
 COPY requirements.txt /app/requirements.txt
-RUN pip install --no-cache-dir --only-binary :all: -r /app/requirements.txt
+RUN pip install --no-cache-dir -r /app/requirements.txt
 
 # Copy service code
 COPY . /app/
+
+# Create non-root user
+RUN adduser --disabled-password --gecos "" appuser && chown -R appuser:appuser /app
+USER appuser
 
 # Default command
 CMD ["python", "app.py"]

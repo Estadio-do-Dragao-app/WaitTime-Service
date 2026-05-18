@@ -54,6 +54,13 @@ class Settings(BaseSettings):
     # Logging
     LOG_LEVEL: str = "INFO"
     
+    # ==================== MQTT SECURITY ====================
+    # Credentials for the 'services' account created by generate_certs.sh
+    MQTT_USER: str = "services"
+    MQTT_PASS: str = "dragao_mqtt_2026"
+    # Path to Root CA cert inside the container (empty = plaintext fallback)
+    MQTT_CA_CERT: str = ""
+
     model_config = SettingsConfigDict(
         env_file=".env",
         case_sensitive=True,

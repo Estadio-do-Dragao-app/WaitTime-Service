@@ -6,6 +6,7 @@ MQTT Event Consumer for Wait Time Service
 import asyncio
 import json
 import logging
+import ssl
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 from collections import defaultdict
@@ -22,6 +23,23 @@ from config.config import settings
 
 logger = logging.getLogger(__name__)
 
+
+def _configure_mqtt_tls(client: mqtt.Client) -> None:
+    """Apply credentials and optional TLS to a paho Client."""
+    user = getattr(settings, 'MQTT_USER', 'services')
+    password = getattr(settings, 'MQTT_PASS', 'dragao_mqtt_2026')
+    ca_cert = getattr(settings, 'MQTT_CA_CERT', '')
+
+    client.username_pw_set(user, password)
+    if ca_cert:
+        try:
+            client.tls_set(ca_certs=ca_cert, tls_version=ssl.PROTOCOL_TLS_CLIENT)
+            client.tls_insecure_set(False)
+        except Exception as exc:  # pragma: no cover
+            logger.warning("[MQTT][TLS] Could not configure TLS: %s", exc)
+
+
+
 class RobustMQTTConsumer:
     """
     Consumes queue events from DOWNSTREAM Mosquitto broker
@@ -37,6 +55,9 @@ class RobustMQTTConsumer:
         # Two MQTT clients: one for receiving, one for sending
         self.downstream_client = mqtt.Client(client_id=f"waittime-downstream-{id(self)}")
         self.upstream_client = mqtt.Client(client_id=f"waittime-upstream-{id(self)}")
+        _configure_mqtt_tls(self.downstream_client)
+        _configure_mqtt_tls(self.upstream_client)
+
         
         # Per-POI smoothers for arrival rates
         self.smoothers = defaultdict(lambda: ArrivalRateSmoother(alpha=0.3))
