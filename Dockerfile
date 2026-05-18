@@ -17,7 +17,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Copy requirements
 COPY requirements.txt /app/requirements.txt
-RUN pip install --no-cache-dir --only-binary :all: -r /app/requirements.txt
+RUN pip install --no-cache-dir -r /app/requirements.txt
 
 # Copy only necessary service files (avoid sensitive data leakage)
 COPY app.py consumer.py schemas.py queueModel.py ./
@@ -29,6 +29,7 @@ RUN chown -R appuser:appuser /app
 
 # Switch to non-root user
 USER appuser
+
 
 # Default command
 CMD ["python", "app.py"]
