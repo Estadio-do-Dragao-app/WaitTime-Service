@@ -7,5 +7,5 @@ pydantic==2.5.0
 pydantic-settings==2.1.0
 python-dotenv==1.2.2
 httpx==0.25.0
-paho-mqtt==1.6.1
+paho-mqtt==2.1.0
 prometheus-fastapi-instrumentator==6.1.0
