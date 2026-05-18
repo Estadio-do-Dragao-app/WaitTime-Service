@@ -1,0 +1,12 @@
+.env
+.env.*
+*.pyc
+__pycache__/
+.git/
+.gitignore
+tests/
+*.md
+safety_report.txt
+htmlcov/
+coverage.xml
+sonar-project.properties
