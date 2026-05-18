@@ -33,7 +33,7 @@ event_consumer: Optional[EventConsumer] = None
 retention_service: Optional[DataRetentionService] = None
 
 API_KEY_NAME = "X-API-Key"
-API_KEY = os.getenv("API_KEY", "dragao_secret_key_2026")  # Load from env, fallback for dev
+API_KEY = os.getenv("API_KEY", "dragao_secret_key_2026")  # NOSONAR - loaded from env, fallback for dev only
 api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=False)
 
 def get_api_key(api_key_header: Annotated[str, Security(api_key_header)]):

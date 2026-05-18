@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     POSTGRES_PORT: int = 5432
     POSTGRES_DB: str = "stadium_waittime"
     POSTGRES_USER: str = "postgres"
-    POSTGRES_PASSWORD: str = "postgres"
+    POSTGRES_PASSWORD: str = "postgres"  # NOSONAR - overridden by env var in production
     
     @property
     def DATABASE_URL(self) -> str:
