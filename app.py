@@ -270,7 +270,7 @@ async def log_user_consent(
 async def get_queue_state_debug(
     poi_id: str,
     db: Annotated[AsyncSession, Depends(get_db_session)],
-    _: str = Depends(get_api_key)
+    _: Annotated[str, Depends(get_api_key)]
 ):
     """
     Debug endpoint to see raw queue state including arrival rates
@@ -285,7 +285,7 @@ async def get_queue_state_debug(
 
 
 @app.get("/debug/consumer-status")
-async def get_consumer_status(_: str = Depends(get_api_key)):
+async def get_consumer_status(_: Annotated[str, Depends(get_api_key)]):
     """
     Debug endpoint to check event consumer status
     """
