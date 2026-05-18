@@ -113,45 +113,19 @@ class TestPOIEndpoints:
 
 
 class TestDebugEndpoints:
-    def test_debug_consumer_status(self):
-        response = client.get("/debug/consumer-status")
+    def test_debug_consumer_status(self, api_key_headers):
+        response = client.get("/debug/consumer-status", headers=api_key_headers)
         assert response.status_code == 200
         assert "status" in response.json()
 
+    def test_debug_consumer_status_unauthorized(self):
+        response = client.get("/debug/consumer-status")
+        assert response.status_code == 401
+
 
 class TestPrivacyConsent:
-    def test_log_user_consent_success(self, api_key_headers):
-        """Test successful consent logging with valid API key"""
-        consent_data = {
-            "user_id": "user_123",
-            "action": "granted"
-        }
-        response = client.post(
-            "/api/v1/privacy/consent",
-            json=consent_data,
-            headers=api_key_headers
-        )
-        assert response.status_code == 200
-        data = response.json()
-        assert data["status"] == "logged"
-        assert "timestamp" in data
-
-    def test_log_user_consent_denied(self, api_key_headers):
-        """Test consent logging for denied action"""
-        consent_data = {
-            "user_id": "user_456",
-            "action": "denied"
-        }
-        response = client.post(
-            "/api/v1/privacy/consent",
-            json=consent_data,
-            headers=api_key_headers
-        )
-        assert response.status_code == 200
-        assert response.json()["status"] == "logged"
-
-    def test_log_user_consent_unauthorized(self):
-        """Test consent endpoint without API key returns 401"""
+    def test_log_user_consent_success(self):
+        """Test successful consent logging (public)"""
         consent_data = {
             "user_id": "user_123",
             "action": "granted"
@@ -160,28 +134,30 @@ class TestPrivacyConsent:
             "/api/v1/privacy/consent",
             json=consent_data
         )
-        assert response.status_code == 401
+        assert response.status_code == 200
+        data = response.json()
+        assert data["status"] == "logged"
+        assert "timestamp" in data
 
-    def test_log_user_consent_invalid_api_key(self):
-        """Test consent endpoint with invalid API key returns 401"""
+    def test_log_user_consent_denied(self):
+        """Test consent logging for denied action (public)"""
         consent_data = {
-            "user_id": "user_123",
-            "action": "granted"
+            "user_id": "user_456",
+            "action": "denied"
         }
         response = client.post(
             "/api/v1/privacy/consent",
-            json=consent_data,
-            headers={"X-API-Key": "invalid_key"}
+            json=consent_data
         )
-        assert response.status_code == 401
+        assert response.status_code == 200
+        assert response.json()["status"] == "logged"
 
-    def test_log_user_consent_missing_fields(self, api_key_headers):
-        """Test consent logging handles missing fields gracefully"""
+    def test_log_user_consent_missing_fields(self):
+        """Test consent logging handles missing fields gracefully (public)"""
         consent_data = {}  # empty data
         response = client.post(
             "/api/v1/privacy/consent",
-            json=consent_data,
-            headers=api_key_headers
+            json=consent_data
         )
         # Should succeed with defaults
         assert response.status_code == 200

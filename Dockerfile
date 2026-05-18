@@ -8,22 +8,28 @@ ENV PYTHONPATH=/app
 
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies and create non-root user
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libpq-dev \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd -m -u 1000 appuser
 
 # Copy requirements
 COPY requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
-# Copy service code
-COPY . /app/
+# Copy only necessary service files (avoid sensitive data leakage)
+COPY app.py consumer.py schemas.py queueModel.py ./
+COPY config/ ./config/
+COPY db/ ./db/
+COPY services/ ./services/
 
-# Create non-root user
-RUN adduser --disabled-password --gecos "" appuser && chown -R appuser:appuser /app
+RUN chown -R appuser:appuser /app
+
+# Switch to non-root user
 USER appuser
+
 
 # Default command
 CMD ["python", "app.py"]

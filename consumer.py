@@ -53,11 +53,10 @@ class RobustMQTTConsumer:
         self.loop = asyncio.get_event_loop()
         
         # Two MQTT clients: one for receiving, one for sending
-        self.downstream_client = mqtt.Client(client_id=f"waittime-downstream-{id(self)}")
-        self.upstream_client = mqtt.Client(client_id=f"waittime-upstream-{id(self)}")
+        self.downstream_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1, client_id=f"waittime-downstream-{id(self)}")
+        self.upstream_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1, client_id=f"waittime-upstream-{id(self)}")
         _configure_mqtt_tls(self.downstream_client)
         _configure_mqtt_tls(self.upstream_client)
-
         
         # Per-POI smoothers for arrival rates
         self.smoothers = defaultdict(lambda: ArrivalRateSmoother(alpha=0.3))

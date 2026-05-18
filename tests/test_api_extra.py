@@ -11,20 +11,28 @@ def test_health_check():
     assert response.status_code == 200
     assert response.json()["status"] == "healthy"
 
+_API_HEADERS = {"X-API-Key": "dragao_secret_key_2026"}
+
 def test_debug_consumer_status_not_init():
     with patch('app.event_consumer', None):
-        response = client.get("/debug/consumer-status")
+        response = client.get("/debug/consumer-status", headers=_API_HEADERS)
         assert response.status_code == 200
         assert response.json()["status"] == "not_initialized"
+
+def test_debug_consumer_status_not_init_401():
+    """debug/consumer-status must reject requests without API key."""
+    with patch('app.event_consumer', None):
+        response = client.get("/debug/consumer-status")
+        assert response.status_code == 401
 
 def test_debug_consumer_status_running():
     mock_consumer = MagicMock()
     mock_consumer.running = True
     mock_consumer.smoothers = {"POI-1": None}
     mock_consumer.queue_models = {"POI-1": None}
-    
+
     with patch('app.event_consumer', mock_consumer):
-        response = client.get("/debug/consumer-status")
+        response = client.get("/debug/consumer-status", headers=_API_HEADERS)
         assert response.status_code == 200
         assert response.json()["status"] == "running"
         assert response.json()["active_pois"] == 1
@@ -48,8 +56,7 @@ def test_unauthorized_access():
 async def test_log_user_consent():
     response = client.post(
         "/api/v1/privacy/consent", 
-        json={"user_id": "user1", "action": "granted"},
-        headers={"X-API-Key": "dragao_secret_key_2026"}
+        json={"user_id": "user1", "action": "granted"}
     )
     assert response.status_code == 200
     assert response.json()["status"] == "logged"
@@ -130,13 +137,19 @@ async def test_lifespan():
         assert mock_close.called
 
 @pytest.mark.asyncio
+async def test_get_queue_state_debug_401():
+    """debug/queue-state must reject requests without API key."""
+    response = client.get("/debug/queue-state/POI-1")
+    assert response.status_code == 401
+
+@pytest.mark.asyncio
 async def test_get_queue_state_debug_404():
     with patch('app.WaitTimeRepository') as mock_repo_class:
         mock_repo = AsyncMock()
         mock_repo.get_queue_state_raw.return_value = None
         mock_repo_class.return_value = mock_repo
-        
-        response = client.get("/debug/queue-state/Unknown")
+
+        response = client.get("/debug/queue-state/Unknown", headers=_API_HEADERS)
         assert response.status_code == 404
 
 @pytest.mark.asyncio
@@ -145,7 +158,7 @@ async def test_get_queue_state_debug_success():
         mock_repo = AsyncMock()
         mock_repo.get_queue_state_raw.return_value = {"poi_id": "POI-1", "wait": 5}
         mock_repo_class.return_value = mock_repo
-        
-        response = client.get("/debug/queue-state/POI-1")
+
+        response = client.get("/debug/queue-state/POI-1", headers=_API_HEADERS)
         assert response.status_code == 200
         assert response.json()["poi_id"] == "POI-1"
