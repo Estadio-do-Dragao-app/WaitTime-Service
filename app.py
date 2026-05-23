@@ -301,7 +301,7 @@ async def get_consumer_status(_: Annotated[str, Depends(get_api_key)]):
 
 if __name__ == "__main__":
     import uvicorn
-    host = os.getenv("HOST", "127.0.0.1")
+    host = os.getenv("HOST", "0.0.0.0")
     uvicorn.run(
         "app:app",
         host=host,

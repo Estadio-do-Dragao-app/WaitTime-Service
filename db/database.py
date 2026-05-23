@@ -18,8 +18,8 @@ engine = create_async_engine(
     settings.DATABASE_URL,
     echo=settings.LOG_LEVEL == "DEBUG",
     pool_pre_ping=True,
-    pool_size=5,
-    max_overflow=10
+    pool_size=20,        # Increased from 5 to handle more concurrent connections
+    max_overflow=10      # Allow overflow for peak load
 )
 
 # Session factory
@@ -57,9 +57,24 @@ async def get_db_session():
 
 
 async def init_db():
-    """Initialize database - create all tables"""
+    """Initialize database - create all tables and indices"""
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        
+        # Apply custom indices for performance
+        try:
+            with open("db/indexes.sql", "r") as f:
+                sql_script = f.read()
+            # Execute each statement separately (PostgreSQL doesn't support multiple in one execute)
+            for statement in sql_script.split(";"):
+                statement = statement.strip()
+                if statement:
+                    await conn.exec_driver_sql(statement)
+            logger.info("Database indices created successfully")
+        except FileNotFoundError:
+            logger.warning("indexes.sql not found - skipping custom indices")
+        except Exception as e:
+            logger.error(f"Failed to create indices: {e}")
     
     logger.info("Database initialized successfully")
 
