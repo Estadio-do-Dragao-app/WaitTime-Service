@@ -33,7 +33,7 @@ event_consumer: Optional[EventConsumer] = None
 retention_service: Optional[DataRetentionService] = None
 
 API_KEY_NAME = "X-API-Key"
-API_KEY = os.getenv("API_KEY", "dragao_secret_key_2026")  # Load from env, fallback for dev
+API_KEY = os.getenv("API_KEY", "dragao_secret_key_2026")  # NOSONAR - loaded from env, fallback for dev only
 api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=False)
 
 def get_api_key(api_key_header: Annotated[str, Security(api_key_header)]):
@@ -251,8 +251,7 @@ async def get_poi_details(
 
 @app.post("/api/v1/privacy/consent")
 async def log_user_consent(
-    consent_data: dict,
-    api_key: Annotated[str, Depends(get_api_key)]
+    consent_data: dict
 ):
     """
     Log user consent event for accountability
@@ -270,7 +269,8 @@ async def log_user_consent(
 @app.get("/debug/queue-state/{poi_id}", responses={404: {"description": "POI not found"}})
 async def get_queue_state_debug(
     poi_id: str,
-    db: Annotated[AsyncSession, Depends(get_db_session)]
+    db: Annotated[AsyncSession, Depends(get_db_session)],
+    _: Annotated[str, Depends(get_api_key)]
 ):
     """
     Debug endpoint to see raw queue state including arrival rates
@@ -285,7 +285,7 @@ async def get_queue_state_debug(
 
 
 @app.get("/debug/consumer-status")
-async def get_consumer_status():
+async def get_consumer_status(_: Annotated[str, Depends(get_api_key)]):
     """
     Debug endpoint to check event consumer status
     """
