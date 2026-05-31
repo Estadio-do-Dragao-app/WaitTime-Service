@@ -17,7 +17,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Copy locked requirements
 COPY requirements.lock.txt /app/requirements.lock.txt
-RUN pip install --no-cache-dir -r /app/requirements.lock.txt
+RUN pip install --no-cache-dir --only-binary :all: --no-deps --require-hashes -r /app/requirements.lock.txt
 
 # Copy only necessary service files (avoid sensitive data leakage)
 COPY app.py consumer.py schemas.py queueModel.py ./
