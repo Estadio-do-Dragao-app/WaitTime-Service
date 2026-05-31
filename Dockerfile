@@ -15,9 +15,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* \
     && useradd -m -u 1000 appuser
 
-# Copy requirements
-COPY requirements.txt /app/requirements.txt
-RUN pip install --no-cache-dir -r /app/requirements.txt
+# Copy locked requirements
+COPY requirements.lock.txt /app/requirements.lock.txt
+RUN pip install --no-cache-dir -r /app/requirements.lock.txt
 
 # Copy only necessary service files (avoid sensitive data leakage)
 COPY app.py consumer.py schemas.py queueModel.py ./
