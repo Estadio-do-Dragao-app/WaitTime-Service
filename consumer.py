@@ -309,7 +309,7 @@ class RobustMQTTConsumer:
             return None
         
         # Already a standard POI ID from the graph
-        if facility_id.startswith('POI-') or facility_id.startswith("node_"):
+        if facility_id.startswith(('POI-', 'node_')):
             return facility_id
 
         parts = facility_id.lower().replace('-', '_').split('_')
