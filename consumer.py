@@ -205,53 +205,64 @@ class RobustMQTTConsumer:
                         num_servers = 8
                         service_rate = 0.5
                 
-                # Arrival rate calculation with EMA smoothing
-                arrival_rate = queue_length / (self.window_minutes or 1)
+                # Smooth the queue_length snapshot (YOLO is noisy ±2-3 people)
                 smoother = self.smoothers[poi_id]
-                smoothed_rate = smoother.update(arrival_rate)
+                smoothed_queue = smoother.update(float(queue_length))
                 
-                if poi_id not in self.queue_models:
-                    self.queue_models[poi_id] = QueueModel(num_servers=num_servers)
-                
-                model = self.queue_models[poi_id]
-                result = model.calculate_wait_time(
-                    arrival_rate=smoothed_rate,
-                    service_rate=service_rate,
-                    sample_count=queue_length
-                )
+                # Direct wait time from smoothed queue snapshot
+                total_capacity = num_servers * service_rate  # people/min
+                if total_capacity > 0 and smoothed_queue > 0:
+                    wait_minutes = min(smoothed_queue / total_capacity, 45.0)
+                else:
+                    wait_minutes = 0.0
+
+                # Status thresholds
+                if wait_minutes < 5.0:
+                    status = 'low'
+                elif wait_minutes < 15.0:
+                    status = 'medium'
+                elif wait_minutes < 30.0:
+                    status = 'high'
+                else:
+                    status = 'overloaded'
+
+                # Simple confidence interval (±20%)
+                ci_margin = wait_minutes * 0.2
+                confidence_lower = max(0.0, wait_minutes - ci_margin)
+                confidence_upper = wait_minutes + ci_margin
                 
                 previous_state = await waittime_repo.get_queue_state_raw(poi_id)
                 self._is_significant_change(
                     previous_state.get('wait_minutes') if previous_state else None,
-                    result.wait_minutes
+                    wait_minutes
                 )
                 
                 await waittime_repo.update_queue_state(
                     poi_id=poi_id,
-                    arrival_rate=smoothed_rate,
-                    wait_minutes=result.wait_minutes,
-                    confidence_lower=result.confidence_lower,
-                    confidence_upper=result.confidence_upper,
+                    arrival_rate=smoothed_queue,
+                    wait_minutes=wait_minutes,
+                    confidence_lower=confidence_lower,
+                    confidence_upper=confidence_upper,
                     sample_count=queue_length,
-                    status=result.status
+                    status=status
                 )
                 
                 self._publish_waittime_update(
                     poi_id=poi_id,
-                    wait_minutes=result.wait_minutes,
-                    confidence_lower=result.confidence_lower,
-                    confidence_upper=result.confidence_upper,
-                    status=result.status,
+                    wait_minutes=wait_minutes,
+                    confidence_lower=confidence_lower,
+                    confidence_upper=confidence_upper,
+                    status=status,
                     queue_length=queue_length
                 )
                 
-                logger.info(f"Updated {poi_id}: wait={result.wait_minutes:.1f}min, queue={queue_length}")
+                logger.info(f"Updated {poi_id}: wait={wait_minutes:.1f}min, queue={queue_length}")
                 
                 if poi_id == "POI-cantina":
                     await self._handle_cantina_reconciliation(
                         poi_repo, waittime_repo,
                         num_servers, service_rate,
-                        smoothed_rate, result, queue_length
+                        smoothed_queue, wait_minutes, confidence_lower, confidence_upper, status, queue_length
                     )
                 
         except Exception:
@@ -261,7 +272,7 @@ class RobustMQTTConsumer:
     async def _handle_cantina_reconciliation(
         self, poi_repo, waittime_repo,
         num_servers, service_rate,
-        smoothed_rate, result, queue_length
+        smoothed_queue, wait_minutes, confidence_lower, confidence_upper, status, queue_length
     ):
         """
         Propagate wait time from POI-cantina to alternate IDs used in the Fanapp graph.
@@ -286,20 +297,20 @@ class RobustMQTTConsumer:
 
                 self._publish_waittime_update(
                     poi_id=alt_id,
-                    wait_minutes=result.wait_minutes,
-                    confidence_lower=result.confidence_lower,
-                    confidence_upper=result.confidence_upper,
-                    status=result.status,
+                    wait_minutes=wait_minutes,
+                    confidence_lower=confidence_lower,
+                    confidence_upper=confidence_upper,
+                    status=status,
                     queue_length=queue_length
                 )
                 await waittime_repo.update_queue_state(
                     poi_id=alt_id,
-                    arrival_rate=smoothed_rate,
-                    wait_minutes=result.wait_minutes,
-                    confidence_lower=result.confidence_lower,
-                    confidence_upper=result.confidence_upper,
+                    arrival_rate=smoothed_queue,
+                    wait_minutes=wait_minutes,
+                    confidence_lower=confidence_lower,
+                    confidence_upper=confidence_upper,
                     sample_count=queue_length,
-                    status=result.status
+                    status=status
                 )
         except Exception:
             logger.exception("Error during cantina reconciliation")
