@@ -36,24 +36,14 @@ class TestProcessQueueEvent:
             mock_poi.service_rate = 0.5
             
             mock_repo_poi = AsyncMock()
-            mock_repo_poi.get_poi_by_id.return_return_value = mock_poi
+            mock_repo_poi.get_poi_by_id.return_value = mock_poi
             
             mock_repo_wait = AsyncMock()
             mock_repo_wait.get_queue_state_raw.return_value = {"wait_minutes": 5.0}
             
             with patch('consumer.get_db') as mock_get_db, \
                  patch('consumer.POIRepository', return_value=mock_repo_poi), \
-                 patch('consumer.WaitTimeRepository', return_value=mock_repo_wait), \
-                 patch('consumer.QueueModel') as mock_model_class:
-                
-                mock_model = MagicMock()
-                mock_model.calculate_wait_time.return_value = MagicMock(
-                    wait_minutes=8.0,
-                    confidence_lower=6.0,
-                    confidence_upper=10.0,
-                    status="medium"
-                )
-                mock_model_class.return_value = mock_model
+                 patch('consumer.WaitTimeRepository', return_value=mock_repo_wait):
                 
                 # Mock the MQTT publishing
                 consumer.upstream_client.publish = MagicMock()
@@ -143,18 +133,9 @@ class TestProcessQueueEvent:
             
             mock_repo_wait = AsyncMock()
             
-            result = MagicMock(
-                wait_minutes=5.0,
-                confidence_lower=4.0,
-                confidence_upper=6.0,
-                status="low"
-            )
-            
-            consumer.upstream_client.publish = MagicMock()
-            
             await consumer._handle_cantina_reconciliation(
                 mock_repo_poi, mock_repo_wait,
-                4, 0.5, 2.0, result, 10
+                4, 0.5, 10.0, 5.0, 4.0, 6.0, "low", 10
             )
             
             # Should have processed 2 alternate IDs
@@ -176,7 +157,7 @@ class TestProcessQueueEvent:
             # Should catch exception and not crash
             await consumer._handle_cantina_reconciliation(
                 mock_repo_poi, mock_repo_wait,
-                4, 0.5, 2.0, result, 10
+                4, 0.5, 10.0, 5.0, 4.0, 6.0, "low", 10
             )
 
     @pytest.mark.asyncio
@@ -203,25 +184,13 @@ class TestProcessQueueEvent:
             
             with patch('consumer.get_db') as mock_get_db, \
                  patch('consumer.POIRepository', return_value=mock_repo_poi), \
-                 patch('consumer.WaitTimeRepository', return_value=mock_repo_wait), \
-                 patch('consumer.QueueModel') as mock_model_class:
-                
-                mock_model = MagicMock()
-                mock_model.calculate_wait_time.return_value = MagicMock(
-                    wait_minutes=8.0,
-                    confidence_lower=6.0,
-                    confidence_upper=10.0,
-                    status="medium"
-                )
-                mock_model_class.return_value = mock_model
+                 patch('consumer.WaitTimeRepository', return_value=mock_repo_wait):
                 
                 consumer.upstream_client.publish = MagicMock()
                 
                 await consumer._process_queue_event(event)
                 
-                # Check that QueueModel was instantiated with BAR defaults (4 servers)
-                mock_model_class.assert_called_once_with(num_servers=4)
-                mock_model.calculate_wait_time.assert_called_once()
+                mock_repo_wait.update_queue_state.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_process_queue_event_poi_not_found_other(self):
@@ -247,22 +216,10 @@ class TestProcessQueueEvent:
             
             with patch('consumer.get_db') as mock_get_db, \
                  patch('consumer.POIRepository', return_value=mock_repo_poi), \
-                 patch('consumer.WaitTimeRepository', return_value=mock_repo_wait), \
-                 patch('consumer.QueueModel') as mock_model_class:
-                
-                mock_model = MagicMock()
-                mock_model.calculate_wait_time.return_value = MagicMock(
-                    wait_minutes=8.0,
-                    confidence_lower=6.0,
-                    confidence_upper=10.0,
-                    status="medium"
-                )
-                mock_model_class.return_value = mock_model
+                 patch('consumer.WaitTimeRepository', return_value=mock_repo_wait):
                 
                 consumer.upstream_client.publish = MagicMock()
                 
                 await consumer._process_queue_event(event)
                 
-                # Check that QueueModel was instantiated with other defaults (8 servers)
-                mock_model_class.assert_called_once_with(num_servers=8)
-                mock_model.calculate_wait_time.assert_called_once()
+                mock_repo_wait.update_queue_state.assert_called_once()
